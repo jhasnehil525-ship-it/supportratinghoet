@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Team Performance Rating</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080810;
+  --surface: #10101c;
+  --surface2: #18182a;
+  --border: #26264a;
+  --accent: #7c6fff;
+  --accent2: #ff6b9d;
+  --accent3: #38ef7d;
+  --accent4: #ffc94a;
+  --text: #e2e2f0;
+  --muted: #6868a0;
+  --danger: #ff4d6d;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+body::before {
+  content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background: radial-gradient(ellipse 600px 400px at 20% 20%, rgba(124,111,255,0.06) 0%, transparent 70%),
+              radial-gradient(ellipse 500px 300px at 80% 80%, rgba(255,107,157,0.05) 0%, transparent 70%);
+}
+body::after {
+  content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background-image: linear-gradient(rgba(124,111,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(124,111,255,0.025) 1px, transparent 1px);
+  background-size:48px 48px;
+}
+
+/* LOGIN */
+#login-screen {
+  position:fixed; inset:0; z-index:100;
+  display:flex; align-items:center; justify-content:center; background:var(--bg);
+}
+.login-card {
+  background:var(--surface); border:1px solid var(--border); border-radius:24px;
+  padding:48px 44px; width:100%; max-width:420px; position:relative; z-index:1;
+  box-shadow:0 32px 80px rgba(0,0,0,0.6);
+}
+.login-logo {
+  width:56px; height:56px; background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border-radius:16px; display:flex; align-items:center; justify-content:center;
+  font-size:24px; margin-bottom:24px;
+}
+.login-card h2 { font-family:'Syne',sans-serif; font-size:26px; font-weight:800; margin-bottom:6px; }
+.login-card p { font-size:14px; color:var(--muted); margin-bottom:28px; }
+.fg { margin-bottom:16px; }
+.fg label { display:block; font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin-bottom:7px; }
+.fg input {
+  width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:12px;
+  padding:13px 16px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:15px; outline:none;
+  transition:border-color 0.2s;
+}
+.fg input:focus { border-color:var(--accent); }
+#login-btn {
+  width:100%; padding:15px; background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border:none; border-radius:12px; color:white; font-family:'Syne',sans-serif;
+  font-size:16px; font-weight:700; cursor:pointer; margin-top:8px; letter-spacing:0.5px;
+  transition:opacity 0.2s, transform 0.2s;
+}
+#login-btn:hover { opacity:0.9; transform:translateY(-1px); }
+#login-btn:active { transform:translateY(0); }
+.login-err {
+  background:rgba(255,77,109,0.12); border:1px solid rgba(255,77,109,0.3);
+  color:var(--danger); padding:11px 14px; border-radius:10px; font-size:13px;
+  margin-top:14px; display:none;
+}
+
+/* APP */
+#app { display:none; min-height:100vh; }
+header {
+  position:sticky; top:0; z-index:50;
+  background:rgba(8,8,16,0.9); backdrop-filter:blur(24px);
+  border-bottom:1px solid var(--border); padding:0 40px; height:64px;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.hl { display:flex; align-items:center; gap:12px; }
+.hlogo {
+  width:36px; height:36px; background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px;
+}
+.htitle { font-family:'Syne',sans-serif; font-size:17px; font-weight:800; }
+.hr { display:flex; align-items:center; gap:10px; }
+.htabs { display:flex; gap:4px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:4px; }
+.htab { padding:6px 14px; border-radius:7px; font-size:13px; font-weight:500; cursor:pointer; color:var(--muted); transition:all 0.2s; border:none; background:none; }
+.htab.active { background:var(--accent); color:white; }
+.htab:hover:not(.active) { color:var(--text); }
+.uchip { display:flex; align-items:center; gap:8px; background:var(--surface2); border:1px solid var(--border); border-radius:40px; padding:5px 12px 5px 6px; }
+.uav { width:28px; height:28px; border-radius:50%; background:linear-gradient(135deg,var(--accent),var(--accent2)); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; }
+.uname { font-size:13px; font-weight:500; }
+.urole { font-size:10px; color:var(--muted); display:block; }
+.rbadge { padding:4px 10px; border-radius:20px; font-size:11px; font-weight:600; text-transform:uppercase; }
+.rbadge.manager { background:rgba(124,111,255,0.18); color:var(--accent); }
+.rbadge.viewer { background:rgba(56,239,125,0.15); color:var(--accent3); }
+.logout-btn { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:7px 14px; color:var(--muted); font-size:13px; cursor:pointer; transition:all 0.2s; }
+.logout-btn:hover { color:var(--text); border-color:var(--accent); }
+
+.bc { position:relative; z-index:10; padding:12px 40px; display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); border-bottom:1px solid rgba(38,38,74,0.5); }
+.bc span { cursor:pointer; transition:color 0.15s; }
+.bc span:hover { color:var(--accent); }
+.bc .cur { color:var(--text); }
+.bc .sep { color:var(--border); }
+
+.main { position:relative; z-index:10; padding:36px 40px; max-width:1200px; margin:0 auto; }
+.page { display:none; animation:fadeUp 0.3s ease; }
+.page.active { display:block; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+.ptitle { font-family:'Syne',sans-serif; font-size:28px; font-weight:800; letter-spacing:-0.8px; margin-bottom:6px; }
+.psub { color:var(--muted); font-size:13px; margin-bottom:28px; }
+
+/* MONTH GRID */
+.mgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; }
+.mbtn { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px; cursor:pointer; transition:all 0.2s; position:relative; overflow:hidden; }
+.mbtn:hover { border-color:var(--accent); transform:translateY(-2px); box-shadow:0 8px 24px rgba(124,111,255,0.18); }
+.mbtn .mn { font-family:'Syne',sans-serif; font-size:15px; font-weight:700; }
+.mbtn .my { font-size:11px; color:var(--muted); margin-top:2px; }
+.mbtn .mc { margin-top:10px; font-size:11px; padding:3px 8px; background:rgba(124,111,255,0.15); color:var(--accent); border-radius:20px; display:inline-block; }
+
+/* WEEK GRID */
+.wgrid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; max-width:580px; }
+.wbtn { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:28px 20px; cursor:pointer; transition:all 0.25s; text-align:center; }
+.wbtn:hover { border-color:var(--accent); transform:translateY(-3px); box-shadow:0 12px 32px rgba(124,111,255,0.22); }
+.wbtn .wn { font-family:'Syne',sans-serif; font-size:34px; font-weight:800; color:var(--accent); }
+.wbtn .wl { font-size:11px; color:var(--muted); margin-top:4px; text-transform:uppercase; letter-spacing:1px; }
+
+/* EMPLOYEE GRID */
+.egrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px; }
+.ebtn { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px 15px; cursor:pointer; transition:all 0.18s; display:flex; align-items:center; gap:11px; position:relative; }
+.ebtn:hover { border-color:var(--accent); background:var(--surface2); }
+.eav { width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,var(--accent),var(--accent2)); display:flex; align-items:center; justify-content:center; font-family:'Syne',sans-serif; font-size:12px; font-weight:700; flex-shrink:0; }
+.ename { font-size:13px; font-weight:500; }
+.enum { font-size:11px; color:var(--muted); }
+.edot { position:absolute; right:12px; top:50%; transform:translateY(-50%); width:7px; height:7px; border-radius:50%; background:var(--accent3); }
+
+/* RATING FORM */
+.rlayout { display:grid; grid-template-columns:1fr 280px; gap:24px; align-items:start; }
+.rcard { background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:28px; }
+.rhead { display:flex; align-items:center; gap:14px; margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid var(--border); }
+.ravlg { width:50px; height:50px; border-radius:14px; background:linear-gradient(135deg,var(--accent),var(--accent2)); display:flex; align-items:center; justify-content:center; font-family:'Syne',sans-serif; font-size:17px; font-weight:800; }
+.rhead h2 { font-family:'Syne',sans-serif; font-size:19px; font-weight:800; }
+.rhead p { font-size:12px; color:var(--muted); margin-top:2px; }
+.vobanner { background:rgba(56,239,125,0.08); border:1px solid rgba(56,239,125,0.2); border-radius:10px; padding:10px 16px; font-size:13px; color:var(--accent3); margin-bottom:18px; display:none; }
+.clist { display:flex; flex-direction:column; gap:12px; }
+.crow { display:flex; align-items:center; justify-content:space-between; padding:13px 17px; background:var(--surface2); border-radius:12px; border:1px solid var(--border); gap:12px; flex-wrap:wrap; }
+.clabel { font-size:13px; font-weight:500; flex:1; min-width:150px; }
+.clabel.avg { color:var(--accent); font-weight:700; }
+.stars { display:flex; gap:5px; }
+.star { width:32px; height:32px; border-radius:8px; background:var(--bg); border:1px solid var(--border); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:var(--muted); transition:all 0.13s; user-select:none; }
+.star:hover, .star.on { background:rgba(255,201,74,0.15); border-color:var(--accent4); color:var(--accent4); transform:scale(1.1); }
+.star.ro { cursor:default; pointer-events:none; }
+.avgpill { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:white; font-family:'Syne',sans-serif; font-size:20px; font-weight:800; padding:7px 16px; border-radius:10px; min-width:68px; text-align:center; }
+.cbox { margin-top:18px; padding:16px; background:var(--surface2); border-radius:12px; border:1px solid var(--border); }
+.cbox label { font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); display:block; margin-bottom:8px; }
+.cbox textarea { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:11px 14px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:13px; resize:vertical; min-height:70px; outline:none; transition:border-color 0.2s; }
+.cbox textarea:focus { border-color:var(--accent); }
+#save-btn { width:100%; margin-top:16px; padding:14px; background:linear-gradient(135deg,var(--accent),var(--accent2)); border:none; border-radius:12px; color:white; font-family:'Syne',sans-serif; font-size:15px; font-weight:700; cursor:pointer; transition:all 0.2s; }
+#save-btn:hover { opacity:0.9; transform:translateY(-1px); }
+
+/* SCALE CARD */
+.scalecard { background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:22px; position:sticky; top:76px; }
+.scalecard h3 { font-family:'Syne',sans-serif; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:var(--muted); margin-bottom:14px; }
+.si { display:flex; align-items:flex-start; gap:12px; padding:9px 0; border-bottom:1px solid var(--border); }
+.si:last-child { border-bottom:none; }
+.snum { width:28px; height:28px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-family:'Syne',sans-serif; font-weight:800; font-size:12px; flex-shrink:0; }
+.si:nth-child(2) .snum { background:rgba(255,77,109,0.18); color:var(--danger); }
+.si:nth-child(3) .snum { background:rgba(255,165,0,0.18); color:orange; }
+.si:nth-child(4) .snum { background:rgba(255,201,74,0.18); color:var(--accent4); }
+.si:nth-child(5) .snum { background:rgba(124,111,255,0.18); color:var(--accent); }
+.si:nth-child(6) .snum { background:rgba(56,239,125,0.18); color:var(--accent3); }
+.stxt strong { font-size:13px; font-weight:600; display:block; }
+.stxt span { font-size:11px; color:var(--muted); }
+
+/* ACCESS MANAGEMENT */
+.asec { background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:26px; margin-bottom:20px; }
+.asec h3 { font-family:'Syne',sans-serif; font-size:17px; font-weight:700; margin-bottom:5px; }
+.asec > p { font-size:13px; color:var(--muted); margin-bottom:20px; }
+.atable { width:100%; border-collapse:collapse; }
+.atable th { text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); padding:9px 12px; border-bottom:1px solid var(--border); }
+.atable td { padding:11px 12px; border-bottom:1px solid rgba(38,38,74,0.5); font-size:13px; vertical-align:middle; }
+.atable tr:hover td { background:rgba(124,111,255,0.03); }
+.tag-active { display:inline-flex; align-items:center; gap:5px; background:rgba(56,239,125,0.1); border:1px solid rgba(56,239,125,0.2); color:var(--accent3); border-radius:20px; padding:3px 9px; font-size:11px; }
+.tag-none { display:inline-flex; align-items:center; gap:5px; background:rgba(104,104,160,0.1); border:1px solid rgba(104,104,160,0.2); color:var(--muted); border-radius:20px; padding:3px 9px; font-size:11px; }
+.einrow { display:flex; gap:7px; align-items:center; }
+.einrow input { flex:1; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 11px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:12px; outline:none; min-width:0; }
+.einrow input:focus { border-color:var(--accent); }
+.abtn { background:var(--accent); border:none; border-radius:7px; color:white; font-size:12px; font-weight:600; padding:8px 13px; cursor:pointer; white-space:nowrap; }
+.abtn:hover { opacity:0.85; }
+.rbtn { background:rgba(255,77,109,0.12); border:1px solid rgba(255,77,109,0.25); color:var(--danger); border-radius:7px; font-size:12px; font-weight:600; padding:5px 9px; cursor:pointer; white-space:nowrap; }
+.rbtn:hover { background:rgba(255,77,109,0.22); }
+.etag { display:inline-flex; align-items:center; gap:5px; background:rgba(56,239,125,0.08); border:1px solid rgba(56,239,125,0.2); color:var(--accent3); border-radius:20px; padding:4px 9px; font-size:12px; }
+.etag button { background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; line-height:1; padding:0 2px; }
+.etag button:hover { color:var(--danger); }
+
+/* MY RATINGS */
+.macc { background:var(--surface); border:1px solid var(--border); border-radius:14px; margin-bottom:10px; overflow:hidden; }
+.mah { padding:16px 20px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; transition:background 0.15s; }
+.mah:hover { background:var(--surface2); }
+.mah h4 { font-family:'Syne',sans-serif; font-size:15px; font-weight:700; }
+.mah span { color:var(--muted); font-size:13px; }
+.mab { display:none; padding:0 20px 16px; }
+.mab.open { display:block; }
+.wacc { background:var(--surface2); border:1px solid var(--border); border-radius:10px; margin-top:10px; overflow:hidden; }
+.wah { padding:12px 16px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; }
+.wah h5 { font-size:13px; font-weight:600; color:var(--muted); }
+.wab { display:none; padding:12px 16px; }
+.wab.open { display:block; }
+.rrow { display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px solid rgba(38,38,74,0.5); font-size:13px; }
+.rrow:last-child { border-bottom:none; }
+.rrl { color:var(--muted); }
+.rrs { display:flex; gap:3px; }
+.rst { width:22px; height:22px; border-radius:5px; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:var(--muted); background:var(--bg); }
+.rst.on { background:rgba(255,201,74,0.15); border-color:var(--accent4); color:var(--accent4); }
+.avgb { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:white; font-family:'Syne',sans-serif; font-weight:800; font-size:12px; padding:3px 9px; border-radius:20px; }
+
+/* TOAST */
+.toast { position:fixed; bottom:26px; right:26px; padding:12px 18px; border-radius:12px; font-size:13px; font-weight:600; z-index:999; transform:translateY(80px); opacity:0; transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+.toast.show { transform:translateY(0); opacity:1; }
+.toast.success { background:var(--accent3); color:#080810; }
+.toast.error { background:var(--danger); color:white; }
+.toast.info { background:var(--accent); color:white; }
+
+.empty { text-align:center; padding:40px 20px; color:var(--muted); font-size:14px; }
+
+@media(max-width:860px){
+  header,. bc,.main{ padding-left:20px; padding-right:20px; }
+  .rlayout { grid-template-columns:1fr; }
+  .wgrid { grid-template-columns:repeat(2,1fr); }
+  .scalecard { position:static; }
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">⭐</div>
+    <h2>Welcome Back</h2>
+    <p>Sign in to access team performance ratings</p>
+    <div class="fg">
+      <label>Email Address</label>
+      <input type="email" id="lemail" placeholder="your@email.com" autocomplete="email">
+    </div>
+    <div class="fg">
+      <label>Password</label>
+      <input type="password" id="lpass" placeholder="Enter password" autocomplete="current-password">
+    </div>
+    <button id="login-btn" type="button">Sign In →</button>
+    <div class="login-err" id="lerr">Invalid email or password.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header>
+    <div class="hl">
+      <div class="hlogo">⭐</div>
+      <div class="htitle">Team Performance</div>
+    </div>
+    <div class="hr">
+      <!-- Manager tabs -->
+      <div id="htabs-manager" style="display:none" class="htabs">
+        <button class="htab active" type="button" onclick="switchTab('ratings')">Ratings</button>
+        <button class="htab" type="button" onclick="switchTab('graphs')">📊 Graphs</button>
+        <button class="htab" type="button" onclick="switchTab('rankings')">🏆 Rankings</button>
+        <button class="htab" type="button" onclick="switchTab('toppers')">⭐ Top Performers</button>
+        <button class="htab" type="button" onclick="switchTab('export')">📥 Export CSV</button>
+        <button class="htab" type="button" onclick="switchTab('access')">Access Management</button>
+      </div>
+      <!-- Viewer tabs -->
+      <div id="htabs-viewer" style="display:none" class="htabs">
+        <button class="htab active" type="button" onclick="switchTab('ratings')">My Ratings</button>
+        <button class="htab" type="button" onclick="switchTab('rankings')">🏆 Rankings</button>
+        <button class="htab" type="button" onclick="switchTab('toppers')">⭐ Top Performers</button>
+      </div>
+      <div class="uchip">
+        <div class="uav" id="uav">P</div>
+        <div>
+          <div class="uname" id="uname">Priyanka</div>
+          <span class="urole" id="urole">Manager</span>
+        </div>
+      </div>
+      <div class="rbadge manager" id="rbadge">Manager</div>
+      <button class="logout-btn" type="button" onclick="doLogout()">Sign Out</button>
+    </div>
+  </header>
+
+  <div class="bc" id="bc"><span onclick="goHome()">Home</span></div>
+
+  <div class="main">
+
+    <!-- RATINGS -->
+    <div id="ratings-sec">
+
+      <div class="page active" id="pg-months">
+        <div id="vwelcome" style="display:none;align-items:center;gap:16px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:24px;"></div>
+        <div class="ptitle" id="months-title">Select Month</div>
+        <div class="psub">Choose a month to view weekly ratings — 2026</div>
+        <div class="mgrid" id="mgrid"></div>
+      </div>
+
+      <div class="page" id="pg-weeks">
+        <div class="ptitle" id="wtitle">January 2026</div>
+        <div class="psub">Select which week to rate</div>
+        <div class="wgrid">
+          <div class="wbtn" onclick="selWeek(1)"><div class="wn">1</div><div class="wl">Week</div></div>
+          <div class="wbtn" onclick="selWeek(2)"><div class="wn">2</div><div class="wl">Week</div></div>
+          <div class="wbtn" onclick="selWeek(3)"><div class="wn">3</div><div class="wl">Week</div></div>
+          <div class="wbtn" onclick="selWeek(4)"><div class="wn">4</div><div class="wl">Week</div></div>
+        </div>
+      </div>
+
+      <div class="page" id="pg-emps">
+        <div class="ptitle" id="etitle">Week 1 — January 2026</div>
+        <div class="psub" id="esub">Select an employee to rate</div>
+        <div class="egrid" id="egrid"></div>
+      </div>
+
+      <div class="page" id="pg-rating">
+        <div class="rlayout">
+          <div>
+            <div class="rcard">
+              <div class="rhead">
+                <div class="ravlg" id="fav"></div>
+                <div><h2 id="fname"></h2><p id="fctx"></p></div>
+              </div>
+              <div class="vobanner" id="vobanner">👁 You are viewing this rating in read-only mode.</div>
+              <div class="clist" id="clist"></div>
+              <div class="cbox">
+                <label>Additional Comments</label>
+                <textarea id="cfield" placeholder="Add notes about performance..."></textarea>
+              </div>
+              <div id="audit-trail" style="display:none;margin-top:14px;padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;font-size:12px;"></div>
+              <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">
+                <button id="save-btn" type="button" onclick="saveRating()" style="flex:1;min-width:140px;">Save Rating ✓</button>
+                <button id="undo-btn" type="button" onclick="undoRating()" style="padding:14px 18px;background:rgba(255,201,74,0.15);border:1px solid rgba(255,201,74,0.3);border-radius:12px;color:var(--accent4);font-family:Syne,sans-serif;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;display:none;" title="Undo last change">↩ Undo</button>
+                <button id="delete-btn" type="button" onclick="deleteRating()" style="padding:14px 18px;background:rgba(255,77,109,0.12);border:1px solid rgba(255,77,109,0.3);border-radius:12px;color:var(--danger);font-family:Syne,sans-serif;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;display:none;" title="Delete this rating">🗑 Delete</button>
+              </div>
+            </div>
+          </div>
+          <div class="scalecard">
+            <h3>Performance Rating Scale</h3>
+            <div class="si"><div class="snum">1</div><div class="stxt"><strong>Concerning</strong><span>Significant issues requiring immediate attention</span></div></div>
+            <div class="si"><div class="snum">2</div><div class="stxt"><strong>Below Expectation</strong><span>Not meeting required standards consistently</span></div></div>
+            <div class="si"><div class="snum">3</div><div class="stxt"><strong>Meeting Expectation</strong><span>Performing at expected level for the role</span></div></div>
+            <div class="si"><div class="snum">4</div><div class="stxt"><strong>Beyond Expectation</strong><span>Consistently exceeding required standards</span></div></div>
+            <div class="si"><div class="snum">5</div><div class="stxt"><strong>Outstanding</strong><span>Exceptional performance, role model for the team</span></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="page" id="pg-myratings">
+        <div id="myratings-content"></div>
+      </div>
+
+    </div>
+
+    <!-- ACCESS MANAGEMENT -->
+    <!-- GRAPHS SECTION -->
+    <div id="graphs-sec" style="display:none">
+      <div class="ptitle">Performance Graphs</div>
+      <div class="psub">Visual comparison of employee ratings across weeks and months — 2026</div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:20px;">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:20px;">
+          <div>
+            <label style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);display:block;margin-bottom:6px;">Employee</label>
+            <select id="graph-emp" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:9px 14px;color:var(--text);font-family:DM Sans,sans-serif;font-size:13px;outline:none;min-width:180px;cursor:pointer;"></select>
+          </div>
+          <div>
+            <label style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);display:block;margin-bottom:6px;">View</label>
+            <select id="graph-view" onchange="renderGraph()" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:9px 14px;color:var(--text);font-family:DM Sans,sans-serif;font-size:13px;outline:none;cursor:pointer;">
+              <option value="all-weeks">All Weeks (All Months)</option>
+              <option value="by-month">By Month</option>
+              <option value="criteria">Criteria Breakdown</option>
+            </select>
+          </div>
+          <div id="graph-month-wrap" style="display:none">
+            <label style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);display:block;margin-bottom:6px;">Month</label>
+            <select id="graph-month" onchange="renderGraph()" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:9px 14px;color:var(--text);font-family:DM Sans,sans-serif;font-size:13px;outline:none;cursor:pointer;"></select>
+          </div>
+          <button onclick="renderGraph()" style="margin-top:20px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;color:white;font-family:Syne,sans-serif;font-size:13px;font-weight:700;padding:10px 20px;cursor:pointer;">Update Graph</button>
+        </div>
+        <div style="position:relative;height:380px;">
+          <canvas id="ratingChart"></canvas>
+        </div>
+      </div>
+      <!-- Team Overview Chart -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;">
+        <div style="font-family:Syne,sans-serif;font-size:16px;font-weight:700;margin-bottom:4px;">Team Average Overview</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:20px;">Average rating of all employees per week</div>
+        <div>
+          <label style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);display:block;margin-bottom:6px;">Month</label>
+          <select id="team-month" onchange="renderTeamChart()" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:9px 14px;color:var(--text);font-family:DM Sans,sans-serif;font-size:13px;outline:none;cursor:pointer;margin-bottom:16px;"></select>
+        </div>
+        <div style="position:relative;height:320px;">
+          <canvas id="teamChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXPORT SECTION -->
+    <div id="export-sec" style="display:none">
+      <div class="ptitle">Export Ratings</div>
+      <div class="psub">Download performance data as CSV files for analysis in Excel or Google Sheets</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:24px;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;">
+          <div style="font-size:24px;margin-bottom:10px;">📋</div>
+          <div style="font-family:Syne,sans-serif;font-size:16px;font-weight:700;margin-bottom:6px;">Full Export</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">Export all employees, all months, all weeks in one CSV file</div>
+          <button onclick="exportAllCSV()" style="width:100%;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;color:white;font-family:Syne,sans-serif;font-size:14px;font-weight:700;padding:12px;cursor:pointer;">Download Full CSV</button>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;">
+          <div style="font-size:24px;margin-bottom:10px;">📅</div>
+          <div style="font-family:Syne,sans-serif;font-size:16px;font-weight:700;margin-bottom:6px;">Export by Month</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:12px;">Export ratings for a specific month</div>
+          <select id="export-month" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:9px 14px;color:var(--text);font-family:DM Sans,sans-serif;font-size:13px;outline:none;margin-bottom:10px;"></select>
+          <button onclick="exportMonthCSV()" style="width:100%;background:linear-gradient(135deg,var(--accent3),var(--accent));border:none;border-radius:10px;color:#080810;font-family:Syne,sans-serif;font-size:14px;font-weight:700;padding:12px;cursor:pointer;">Download Month CSV</button>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;">
+          <div style="font-size:24px;margin-bottom:10px;">👤</div>
+          <div style="font-family:Syne,sans-serif;font-size:16px;font-weight:700;margin-bottom:6px;">Export by Employee</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:12px;">Export all ratings for one employee</div>
+          <select id="export-emp" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:9px 14px;color:var(--text);font-family:DM Sans,sans-serif;font-size:13px;outline:none;margin-bottom:10px;"></select>
+          <button onclick="exportEmpCSV()" style="width:100%;background:linear-gradient(135deg,var(--accent2),var(--accent));border:none;border-radius:10px;color:white;font-family:Syne,sans-serif;font-size:14px;font-weight:700;padding:12px;cursor:pointer;">Download Employee CSV</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RANKINGS SECTION -->
+    <div id="rankings-sec" style="display:none">
+      <div class="ptitle">Monthly Rankings</div>
+      <div class="psub">Auto-calculated employee rankings based on average rating across all weeks of each month</div>
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:24px;flex-wrap:wrap;">
+        <div>
+          <label style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);display:block;margin-bottom:6px;">Select Month</label>
+          <select id="rank-month" onchange="renderRankings()" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 16px;color:var(--text);font-family:DM Sans,sans-serif;font-size:13px;outline:none;cursor:pointer;min-width:180px;"></select>
+        </div>
+      </div>
+      <div id="rankings-content"></div>
+    </div>
+
+    <!-- TOP PERFORMERS SECTION -->
+    <div id="toppers-sec" style="display:none">
+      <div class="ptitle">Top Performers</div>
+      <div class="psub">Top 3 employees of each month, automatically ranked by average rating</div>
+      <div id="toppers-content"></div>
+    </div>
+
+    <div id="access-sec" style="display:none">
+      <div class="ptitle">Access Management</div>
+      <div class="psub">Assign employee emails so they can log in and view only their own ratings.</div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:20px;">
+        <div style="font-family:Syne,sans-serif;font-size:14px;font-weight:700;margin-bottom:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-size:11px;">Admin Accounts</div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;" id="admin-list"></div>
+      </div>
+      <div class="asec" style="margin-bottom:20px;">
+        <h3>Manage Employees</h3>
+        <p>Add new employees to the team or remove existing ones. Removing an employee will also revoke their login access.</p>
+        <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
+          <input type="text" id="new-emp-name" placeholder="Enter employee full name..." style="flex:1;min-width:200px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:11px 16px;color:var(--text);font-family:DM Sans,sans-serif;font-size:14px;outline:none;">
+          <button onclick="addEmployee()" style="background:linear-gradient(135deg,var(--accent3),var(--accent));border:none;border-radius:10px;color:#080810;font-family:Syne,sans-serif;font-size:14px;font-weight:700;padding:11px 22px;cursor:pointer;white-space:nowrap;">+ Add Employee</button>
+        </div>
+        <div id="emp-manage-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;"></div>
+      </div>
+      <div class="asec">
+        <h3>Employee Email Assignments</h3>
+        <p>Assign a custom email and password to each employee. They log in with those credentials to view only their own ratings.</p>
+        <table class="atable">
+          <thead><tr><th>#</th><th>Employee</th><th>Status</th><th>Email & Password</th><th>Action</th></tr></thead>
+          <tbody id="atbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+var DEFAULT_EMPS = [
+  'Arnab','Nikita','Rinki','Anamika','Apporva','Pradipta','Rajani','Sneha','Malay','Rajni Rao',
+  'Shouvik Das','Anisha Ghosh','Sumukta','Rehana','Akash Chandra Paul','Anwesa','Shreya','Aditya',
+  'Soumili','Salini','Soumava','Avishek','Riya','Anurabha','Ahmed Arsalan','Shrishti Naomi',
+  'Anupa Gain','Arundhuti Ganguly','Md.Badruddin','Sufi','Ayan Ghosh','Nabrupa Ghosh','Shreyam',
+  'Vicky Shaw','Aman','Sakshi Jha','Harshita','Nayeemuddin','Suman Singha'
+];
+function getEmps() { return lsGet('employee_list') || DEFAULT_EMPS; }
+function saveEmps(list) { lsSet('employee_list', list); }
+// EMPS is now a live reference — always call getEmps() for current list
+var EMPS = DEFAULT_EMPS; // will be refreshed on startApp
+
+var CRITERIA = [
+  'Attendance / Availability',
+  'Professionalism / Behavior',
+  'Support Resolution Rate + FCR',
+  'Ownership',
+  'Quality & CSAT',
+  'Proactiveness'
+];
+
+// Admin credentials — encoded
+var ADMINS = [
+  { email: atob('cHJpeWFua2Euc2luZ2hAaG91c2VvZmVkdGVjaC5pbg=='), pass: atob('dlREeDVEbUV0QTVKaDRGdQ=='), name: 'Priyanka Singh' },
+  { email: atob('YXpoYXJ1bC5pc2xhbUBob3VzZW9mZWR0ZWNoLmlu'),     pass: atob('LksxWFVHNXRoR0R0WDk5NA=='), name: 'Azharul Islam' },
+  { email: atob('YWJoaXVkYXkuYmFnaGVsQGhvdXNlb2ZlZHRlY2guaW4='),  pass: atob('VFlPNV5vVVZ4YVBdZVt5ag=='), name: 'Abhiuday Baghel' },
+  { email: atob('YXJjaGFuYS50cmlwYXRoaUBob3VzZW9mZWR0ZWNoLmlu'),  pass: atob('WmNLN2NUYWM2UzZhTFg2Rw=='), name: 'Archana Tripathi' }
+];
+var EP = atob('ZW1wbG95ZWUxMjM=');
+
+var cu = null, cMonth = null, cWeek = null, cEmp = null, viewOnly = false;
+
+// STORAGE
+function lsGet(k) { try { var v=localStorage.getItem(k); return v!==null?JSON.parse(v):null; } catch(e){return null;} }
+function lsSet(k,v) { try { localStorage.setItem(k,JSON.stringify(v)); } catch(e){} }
+function getMap() { return lsGet('access_map') || {}; }
+function setMap(m) { lsSet('access_map',m); }
+function getRating(mo,w,e) { return lsGet('r26_'+mo+'_w'+w+'_'+e); }
+function setRating(mo,w,e,d) { lsSet('r26_'+mo+'_w'+w+'_'+e,d); }
+function cntRatings(mo,w) { var c=0; for(var i=0;i<EMPS.length;i++) if(getRating(mo,w,EMPS[i])) c++; return c; }
+function cntMonth(mo) { var t=0; for(var w=1;w<=4;w++) t+=cntRatings(mo,w); return t; }
+
+// UTILS
+function initials(n) { var p=n.trim().split(/\s+/); var r=''; for(var i=0;i<Math.min(2,p.length);i++) r+=p[i][0]; return r.toUpperCase(); }
+function showToast(msg,type) {
+  var t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast '+(type||'success')+' show';
+  setTimeout(function(){t.classList.remove('show');},2800);
+}
+function showPage(id) { var ps=document.querySelectorAll('.page'); for(var i=0;i<ps.length;i++) ps[i].classList.remove('active'); document.getElementById(id).classList.add('active'); }
+
+// LOGIN
+function doLogin() {
+  var emailEl = document.getElementById('lemail');
+  var passEl = document.getElementById('lpass');
+  var errEl = document.getElementById('lerr');
+
+  if(!emailEl || !passEl) { alert('Form error - please refresh the page'); return; }
+
+  var email = emailEl.value.trim().toLowerCase();
+  var pass = passEl.value.trim();
+
+  errEl.style.display = 'none';
+
+  if(!email || !pass) {
+    errEl.textContent = 'Please enter your email and password.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  for(var ai=0; ai<ADMINS.length; ai++) {
+    if(email === ADMINS[ai].email.toLowerCase() && pass === ADMINS[ai].pass) {
+      cu = { email:email, role:'manager', empName:null, adminName: ADMINS[ai].name };
+      startApp();
+      return;
+    }
+  }
+
+  var map = getMap();
+  var keys = Object.keys(map);
+  for(var i=0;i<keys.length;i++) {
+    var n = keys[i];
+    var rec = map[n];
+    // Handle both old string format and new {email,pass} object format
+    var empEmail = '';
+    var empPass = '';
+    if(typeof rec === 'string') {
+      empEmail = rec.toLowerCase().trim();
+      empPass = EP; // fallback to default
+    } else if(rec && typeof rec === 'object') {
+      empEmail = (rec.email || '').toLowerCase().trim();
+      empPass = (rec.pass || '').trim();
+    }
+    if(empEmail && empEmail === email && empPass === pass) {
+      cu = { email:email, role:'viewer', empName:n };
+      startApp();
+      return;
+    }
+  }
+
+  errEl.textContent = 'Invalid email or password. Please try again.';
+  errEl.style.display = 'block';
+}
+
+function startApp() {
+  EMPS = getEmps(); // always load fresh list
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  // Always hide access management for viewers
+  document.getElementById('access-sec').style.display = 'none';
+  document.getElementById('ratings-sec').style.display = 'block';
+  setupHeader();
+  if(cu.role === 'manager') {
+    document.getElementById('htabs-manager').style.display = 'flex';
+    document.getElementById('htabs-viewer').style.display = 'none';
+  } else {
+    document.getElementById('htabs-manager').style.display = 'none';
+    document.getElementById('htabs-viewer').style.display = 'flex';
+  }
+  cMonth=null; cWeek=null; cEmp=null;
+  initMonths();
+  showPage('pg-months');
+  updateBC();
+}
+
+function doLogout() {
+  cu=null; cMonth=null; cWeek=null; cEmp=null;
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('lemail').value = '';
+  document.getElementById('lpass').value = '';
+  document.getElementById('lerr').style.display = 'none';
+}
+
+function setupHeader() {
+  var name = cu.role==='manager' ? (cu.adminName||'Admin') : (cu.empName||cu.email);
+  var av = cu.role==='manager' ? initials(name) : initials(name);
+  document.getElementById('uav').textContent = av;
+  document.getElementById('uname').textContent = name;
+  document.getElementById('urole').textContent = cu.role==='manager' ? 'Manager' : 'Employee';
+  var b = document.getElementById('rbadge');
+  b.textContent = cu.role==='manager' ? 'Manager' : 'View Only';
+  b.className = 'rbadge ' + (cu.role==='manager' ? 'manager' : 'viewer');
+}
+
+// TABS
+function switchTab(tab) {
+  // Block restricted tabs from viewers
+  var managerOnly = ['access','export','graphs'];
+  if(cu.role !== 'manager' && managerOnly.indexOf(tab) !== -1) return;
+
+  // Update active state on whichever tab bar is visible
+  var tabs = document.querySelectorAll('.htab');
+  var tabNames = cu.role === 'manager'
+    ? ['ratings','graphs','rankings','toppers','export','access']
+    : ['ratings','rankings','toppers'];
+  for(var ti=0;ti<tabs.length;ti++) tabs[ti].classList.toggle('active', tab===tabNames[ti]);
+
+  // Hide all sections
+  var secs = ['ratings-sec','graphs-sec','rankings-sec','toppers-sec','export-sec','access-sec'];
+  for(var si=0;si<secs.length;si++) document.getElementById(secs[si]).style.display='none';
+
+  if(tab==='access') {
+    document.getElementById('access-sec').style.display = 'block';
+    renderAccessTable();
+    document.getElementById('bc').innerHTML = '<span class="cur">Access Management</span>';
+  } else if(tab==='graphs') {
+    document.getElementById('graphs-sec').style.display = 'block';
+    document.getElementById('bc').innerHTML = '<span class="cur">Graphs</span>';
+    initGraphSelects(); renderGraph(); renderTeamChart();
+  } else if(tab==='rankings') {
+    document.getElementById('rankings-sec').style.display = 'block';
+    document.getElementById('bc').innerHTML = '<span class="cur">Rankings</span>';
+    initRankMonth(); renderRankings();
+  } else if(tab==='toppers') {
+    document.getElementById('toppers-sec').style.display = 'block';
+    document.getElementById('bc').innerHTML = '<span class="cur">Top Performers</span>';
+    renderToppers();
+  } else if(tab==='export') {
+    document.getElementById('export-sec').style.display = 'block';
+    document.getElementById('bc').innerHTML = '<span class="cur">Export CSV</span>';
+    initExportSelects();
+  } else {
+    // ratings
+    document.getElementById('ratings-sec').style.display = 'block';
+    cMonth=null; cWeek=null; cEmp=null;
+    initMonths(); showPage('pg-months'); updateBC();
+  }
+}
+
+// BREADCRUMB
+function updateBC() {
+  var bc = document.getElementById('bc');
+  var h = '<span onclick="goHome()">Home</span>';
+  if(cMonth!==null) h += '<span class="sep"> › </span><span onclick="goToMonth()">'+MONTHS[cMonth]+'</span>';
+  if(cWeek!==null) h += '<span class="sep"> › </span><span onclick="goToWeek()">Week '+cWeek+'</span>';
+  if(cEmp!==null) h += '<span class="sep"> › </span><span class="cur">'+cEmp+'</span>';
+  bc.innerHTML = h;
+}
+
+function goHome() { cMonth=null; cWeek=null; cEmp=null; initMonths(); showPage('pg-months'); updateBC(); }
+function goToMonth() { cWeek=null; cEmp=null; document.getElementById('wtitle').textContent=MONTHS[cMonth]+' 2026'; showPage('pg-weeks'); updateBC(); }
+function goToWeek() { cEmp=null; initEmpGrid(); document.getElementById('etitle').textContent='Week '+cWeek+' — '+MONTHS[cMonth]+' 2026'; showPage('pg-emps'); updateBC(); }
+
+// MONTHS
+function initMonths() {
+  EMPS = getEmps();
+  var vw = document.getElementById('vwelcome');
+  var mt = document.getElementById('months-title');
+  if(cu.role==='viewer') {
+    mt.textContent = 'My Performance Ratings';
+    vw.style.display = 'flex';
+    vw.innerHTML = '<div style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,var(--accent3),var(--accent));display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-size:18px;font-weight:800;flex-shrink:0">'+initials(cu.empName)+'</div><div><div style="font-family:Syne,sans-serif;font-size:18px;font-weight:800">Welcome, '+cu.empName+'!</div><div style="font-size:13px;color:var(--muted);margin-top:4px">Select a month to view your weekly ratings.</div></div>';
+  } else {
+    mt.textContent = 'Select Month';
+    vw.style.display = 'none';
+  }
+  var g = document.getElementById('mgrid'); g.innerHTML='';
+  for(var i=0;i<MONTHS.length;i++) {
+    (function(idx){
+      var c = cntMonth(idx);
+      var d = document.createElement('div'); d.className='mbtn';
+      d.innerHTML='<div class="mn">'+MONTHS[idx]+'</div><div class="my">2026</div>'+(c>0?'<div class="mc">'+c+' rated</div>':'');
+      d.onclick = function(){ selMonth(idx); };
+      g.appendChild(d);
+    })(i);
+  }
+}
+
+function selMonth(i) { cMonth=i; document.getElementById('wtitle').textContent=MONTHS[i]+' 2026'; updateBC(); showPage('pg-weeks'); }
+function selWeek(w) { cWeek=w; initEmpGrid(); document.getElementById('etitle').textContent='Week '+w+' — '+MONTHS[cMonth]+' 2026'; updateBC(); showPage('pg-emps'); }
+
+// EMPLOYEES
+function initEmpGrid() {
+  EMPS = getEmps();
+  var g = document.getElementById('egrid'); g.innerHTML='';
+  var isV = cu.role==='viewer';
+  document.getElementById('esub').textContent = isV ? 'Viewing your rating' : 'Select an employee to rate';
+  var list = isV ? EMPS.filter(function(e){return e===cu.empName;}) : EMPS;
+  if(!list.length) { g.innerHTML='<div class="empty">No employees visible for your account.</div>'; return; }
+  for(var i=0;i<list.length;i++) {
+    (function(emp){
+      var rated = getRating(cMonth,cWeek,emp)!==null;
+      var idx = EMPS.indexOf(emp);
+      var d = document.createElement('div'); d.className='ebtn';
+      d.innerHTML='<div class="eav">'+initials(emp)+'</div><div><div class="ename">'+emp+'</div><div class="enum">#'+String(idx+1).padStart(2,'0')+'</div></div>'+(rated?'<div class="edot"></div>':'');
+      d.onclick = function(){ selEmp(emp); };
+      g.appendChild(d);
+    })(list[i]);
+  }
+}
+
+// RATING FORM
+function selEmp(emp) {
+  cEmp=emp; viewOnly=(cu.role==='viewer'); updateBC();
+  buildForm(emp); showPage('pg-rating');
+}
+
+var curRatings = {};
+
+function buildForm(emp) {
+  document.getElementById('fav').textContent = initials(emp);
+  document.getElementById('fname').textContent = emp;
+  document.getElementById('fctx').textContent = 'Week '+cWeek+' — '+MONTHS[cMonth]+' 2026';
+  var saved = getRating(cMonth,cWeek,emp);
+  curRatings = {};
+  for(var i=0;i<CRITERIA.length;i++) curRatings[CRITERIA[i]] = saved ? (saved.criteria[CRITERIA[i]]||0) : 0;
+  document.getElementById('cfield').value = saved ? (saved.comment||'') : '';
+  document.getElementById('cfield').readOnly = viewOnly;
+  document.getElementById('vobanner').style.display = viewOnly ? 'block' : 'none';
+  document.getElementById('save-btn').style.display = viewOnly ? 'none' : 'block';
+  var cl = document.getElementById('clist'); cl.innerHTML='';
+  for(var j=0;j<CRITERIA.length;j++) {
+    (function(crit){
+      var row = document.createElement('div'); row.className='crow';
+      var sid = 'st_'+crit.replace(/[^a-z0-9]/gi,'_');
+      row.innerHTML='<div class="clabel">'+crit+'</div><div class="stars" id="'+sid+'"></div>';
+      cl.appendChild(row);
+      var sd = row.querySelector('.stars');
+      for(var s=1;s<=5;s++) {
+        (function(val){
+          var st = document.createElement('div');
+          st.className = 'star'+(curRatings[crit]>=val?' on':'')+(viewOnly?' ro':'');
+          st.textContent = val;
+          if(!viewOnly) st.onclick = (function(c,v,sd2){ return function(){ setStars(c,v,sd2); }; })(crit,val,sd);
+          sd.appendChild(st);
+        })(s);
+      }
+    })(CRITERIA[j]);
+  }
+  var ar = document.createElement('div'); ar.className='crow';
+  ar.innerHTML='<div class="clabel avg">⌀ Average Score</div><div class="avgpill" id="avgpill">'+calcAvg()+'</div>';
+  cl.appendChild(ar);
+
+  // Show audit trail and undo/delete buttons
+  var undoBtn = document.getElementById('undo-btn');
+  var deleteBtn = document.getElementById('delete-btn');
+  var auditDiv = document.getElementById('audit-trail');
+  if(!viewOnly && saved) {
+    if(deleteBtn) deleteBtn.style.display='block';
+    // Audit trail
+    var auditHtml = '<div style="font-weight:600;color:var(--text);margin-bottom:8px;">📝 Edit History</div>';
+    var savedBy = saved.savedBy || 'Unknown';
+    var savedAt = saved.savedAt ? new Date(saved.savedAt).toLocaleString() : '—';
+    auditHtml += '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)"><span style="background:rgba(56,239,125,0.15);color:var(--accent3);border-radius:20px;padding:2px 8px;font-size:11px;">Current</span><span style="color:var(--text)">Saved by <strong>'+savedBy+'</strong></span><span style="color:var(--muted);margin-left:auto">'+savedAt+'</span></div>';
+    if(saved.undoneBy) {
+      auditHtml += '<div style="padding:5px 0;color:var(--accent4);font-size:11px;">↩ Undone by '+saved.undoneBy+' at '+new Date(saved.undoneAt).toLocaleString()+'</div>';
+    }
+    if(saved.history && saved.history.length>0) {
+      if(undoBtn) undoBtn.style.display='block';
+      for(var hi=saved.history.length-1;hi>=0;hi--) {
+        var h=saved.history[hi];
+        var hby=h.savedBy||'Unknown'; var hat=h.savedAt?new Date(h.savedAt).toLocaleString():'—';
+        auditHtml+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(38,38,74,0.4)"><span style="background:rgba(104,104,160,0.15);color:var(--muted);border-radius:20px;padding:2px 8px;font-size:11px;">v'+(hi+1)+'</span><span style="color:var(--muted)">'+hby+'</span><span style="color:var(--muted);margin-left:auto;font-size:11px">'+hat+'</span></div>';
+      }
+    } else {
+      if(undoBtn) undoBtn.style.display='none';
+    }
+    if(auditDiv){ auditDiv.style.display='block'; auditDiv.innerHTML=auditHtml; }
+  } else {
+    if(undoBtn) undoBtn.style.display='none';
+    if(deleteBtn) deleteBtn.style.display='none';
+    if(auditDiv) auditDiv.style.display='none';
+  }
+}
+
+function setStars(crit,val,sd) {
+  curRatings[crit]=val;
+  var stars=sd.querySelectorAll('.star');
+  for(var i=0;i<stars.length;i++) stars[i].classList.toggle('on',i<val);
+  document.getElementById('avgpill').textContent=calcAvg();
+}
+
+function calcAvg() {
+  var total=0, count=0;
+  for(var i=0;i<CRITERIA.length;i++) { total+=(curRatings[CRITERIA[i]]||0); count++; }
+  var filled=0;
+  for(var i=0;i<CRITERIA.length;i++) if(curRatings[CRITERIA[i]]>0) filled++;
+  if(!filled) return '—';
+  return (total/count).toFixed(2);
+}
+
+function saveRating() {
+  if(cu.role!=='manager') return;
+  var existing = getRating(cMonth,cWeek,cEmp);
+  var history = existing ? (existing.history||[]) : [];
+  // Push current state to history before overwriting
+  if(existing) {
+    history.push({ criteria: existing.criteria, avg: existing.avg, comment: existing.comment, savedAt: existing.savedAt, savedBy: existing.savedBy||'Unknown' });
+  }
+  var d = {
+    criteria:{}, avg:calcAvg(),
+    comment:document.getElementById('cfield').value,
+    savedAt: new Date().toISOString(),
+    savedBy: cu.adminName || cu.email,
+    history: history
+  };
+  for(var i=0;i<CRITERIA.length;i++) d.criteria[CRITERIA[i]]=curRatings[CRITERIA[i]]||0;
+  setRating(cMonth,cWeek,cEmp,d);
+  showToast('Rating saved by '+d.savedBy+' ✓','success');
+  setTimeout(function(){ initEmpGrid(); goToWeek(); },1400);
+}
+
+function undoRating() {
+  if(cu.role!=='manager') return;
+  var existing = getRating(cMonth,cWeek,cEmp);
+  if(!existing || !existing.history || existing.history.length===0) {
+    showToast('No previous version to undo to','error'); return;
+  }
+  var prev = existing.history[existing.history.length-1];
+  var newHistory = existing.history.slice(0,-1);
+  var d = { criteria: prev.criteria, avg: prev.avg, comment: prev.comment, savedAt: prev.savedAt, savedBy: prev.savedBy, history: newHistory, undoneBy: cu.adminName||cu.email, undoneAt: new Date().toISOString() };
+  setRating(cMonth,cWeek,cEmp,d);
+  showToast('Rating restored to previous version ↩','info');
+  setTimeout(function(){ buildForm(cEmp); },400);
+}
+
+function deleteRating() {
+  if(cu.role!=='manager') return;
+  if(!confirm('Are you sure you want to delete this rating? This cannot be undone.')) return;
+  lsSet('r26_'+cMonth+'_w'+cWeek+'_'+cEmp, null);
+  try { localStorage.removeItem('r26_'+cMonth+'_w'+cWeek+'_'+cEmp); } catch(e){}
+  showToast('Rating deleted','info');
+  setTimeout(function(){ initEmpGrid(); goToWeek(); },1000);
+}
+
+// MY RATINGS
+function renderMyRatings() {
+  var emp=cu.empName, el=document.getElementById('myratings-content');
+  var html='<div style="display:flex;align-items:center;gap:16px;margin-bottom:24px"><div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--accent3),var(--accent));display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-size:20px;font-weight:800">'+initials(emp)+'</div><div><div style="font-family:Syne,sans-serif;font-size:20px;font-weight:800">'+emp+'</div><div style="font-size:13px;color:var(--muted);margin-top:3px">Your Performance Ratings — 2026</div></div></div>';
+  var any=false;
+  for(var mi=0;mi<MONTHS.length;mi++) {
+    var mhtml='', mhas=false;
+    for(var w=1;w<=4;w++) {
+      var r=getRating(mi,w,emp);
+      if(r) {
+        mhas=true; any=true;
+        var rows='';
+        for(var ci=0;ci<CRITERIA.length;ci++) {
+          var v=r.criteria[CRITERIA[ci]]||0;
+          var ss='';
+          for(var s=1;s<=5;s++) ss+='<div class="rst'+(v>=s?' on':'')+'">'+s+'</div>';
+          rows+='<div class="rrow"><span class="rrl">'+CRITERIA[ci]+'</span><div class="rrs">'+ss+'</div></div>';
+        }
+        mhtml+='<div class="wacc"><div class="wah" onclick="this.nextElementSibling.classList.toggle(\'open\')"><h5>Week '+w+'</h5><div style="display:flex;align-items:center;gap:8px"><span class="avgb">Avg: '+r.avg+'</span><span style="color:var(--muted);font-size:12px">▼</span></div></div><div class="wab">'+rows+(r.comment?'<div style="margin-top:10px;padding:9px;background:var(--bg);border-radius:8px;font-size:12px;color:var(--muted);font-style:italic">"'+r.comment+'"</div>':'')+'</div></div>';
+      }
+    }
+    if(mhas) { any=true; html+='<div class="macc"><div class="mah" onclick="this.nextElementSibling.classList.toggle(\'open\')"><h4>'+MONTHS[mi]+' 2026</h4><span>▼</span></div><div class="mab">'+mhtml+'</div></div>'; }
+  }
+  if(!any) html+='<div class="empty" style="margin-top:32px"><div style="font-size:40px;margin-bottom:12px">📋</div><div>No ratings submitted for you yet.</div><div style="font-size:12px;margin-top:6px">Check back after your manager completes the weekly review.</div></div>';
+  el.innerHTML=html;
+  document.getElementById('bc').innerHTML='<span class="cur">My Ratings</span>';
+}
+
+// ACCESS MANAGEMENT
+function addEmployee() {
+  var inp = document.getElementById('new-emp-name');
+  var name = inp.value.trim();
+  if(!name) { showToast('Please enter an employee name','error'); return; }
+  var list = getEmps();
+  // Check duplicate (case insensitive)
+  for(var i=0;i<list.length;i++) {
+    if(list[i].toLowerCase()===name.toLowerCase()) { showToast(name+' already exists in the list','error'); return; }
+  }
+  list.push(name);
+  saveEmps(list);
+  EMPS = list;
+  inp.value = '';
+  showToast(name+' added successfully ✓','success');
+  renderAccessTable();
+}
+
+function deleteEmployee(emp) {
+  if(!confirm('Delete "'+emp+'" from the employee list?\n\nNote: Their ratings data will be preserved but they will be removed from all future rating lists and their login access will be revoked.')) return;
+  var list = getEmps();
+  list = list.filter(function(e){ return e!==emp; });
+  saveEmps(list);
+  EMPS = list;
+  // Also revoke their access
+  var map = getMap();
+  if(map[emp]) { delete map[emp]; setMap(map); }
+  showToast(emp+' removed from employee list','info');
+  renderAccessTable();
+}
+
+function renderAccessTable() {
+  EMPS = getEmps();
+
+  // ---- Admin list ----
+  var al = document.getElementById('admin-list');
+  if(al) {
+    al.innerHTML = '';
+    for(var ai=0; ai<ADMINS.length; ai++) {
+      var isMe = ADMINS[ai].email.toLowerCase() === cu.email.toLowerCase();
+      var d = document.createElement('div');
+      d.style.cssText = 'display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid '+(isMe?'var(--accent)':'var(--border)')+';border-radius:12px;padding:10px 14px;';
+      d.innerHTML = '<div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-size:12px;font-weight:700;">'+initials(ADMINS[ai].name)+'</div>'
+        + '<div><div style="font-size:13px;font-weight:600;">'+ADMINS[ai].name+(isMe?' <span style="font-size:10px;background:rgba(124,111,255,0.2);color:var(--accent);border-radius:20px;padding:1px 6px;">You</span>':'')+'</div>'
+        + '<div style="font-size:11px;color:var(--muted);">'+ADMINS[ai].email+'</div></div>';
+      al.appendChild(d);
+    }
+  }
+
+  // ---- Employee manage list ----
+  var eml = document.getElementById('emp-manage-list');
+  if(eml) {
+    eml.innerHTML = '';
+    for(var i=0; i<EMPS.length; i++) {
+      (function(emp, idx) {
+        var d = document.createElement('div');
+        d.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;';
+        // Left side
+        var left = document.createElement('div');
+        left.style.cssText = 'display:flex;align-items:center;gap:10px;';
+        left.innerHTML = '<div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:Syne,sans-serif;flex-shrink:0;">'+initials(emp)+'</div>'
+          + '<div><div style="font-size:13px;font-weight:500;">'+emp+'</div><div style="font-size:11px;color:var(--muted);">#'+String(idx+1).padStart(2,'0')+'</div></div>';
+        // Remove button
+        var btn = document.createElement('button');
+        btn.textContent = '🗑 Remove';
+        btn.style.cssText = 'background:rgba(255,77,109,0.12);border:1px solid rgba(255,77,109,0.25);color:var(--danger);border-radius:7px;font-size:12px;font-weight:600;padding:5px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0;';
+        btn.onclick = (function(e){ return function(){ deleteEmployee(e); }; })(emp);
+        d.appendChild(left);
+        d.appendChild(btn);
+        eml.appendChild(d);
+      })(EMPS[i], i);
+    }
+  }
+
+  // ---- Email assignments table ----
+  var map = getMap();
+  var tb = document.getElementById('atbody');
+  if(!tb) return;
+  tb.innerHTML = '';
+
+  for(var i=0; i<EMPS.length; i++) {
+    (function(emp, idx) {
+      var rec = map[emp] || null;
+      var email = rec ? (typeof rec==='string' ? rec : (rec.email||'')) : '';
+      var pass  = rec && typeof rec==='object' ? (rec.pass||'') : '';
+      var has = !!email;
+
+      var tr = document.createElement('tr');
+
+      // # cell
+      var td0 = document.createElement('td');
+      td0.style.color = 'var(--muted)';
+      td0.textContent = idx+1;
+
+      // Name cell
+      var td1 = document.createElement('td');
+      td1.innerHTML = '<div style="display:flex;align-items:center;gap:9px;">'
+        +'<div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;">'+initials(emp)+'</div>'
+        +'<span style="font-weight:500;">'+emp+'</span></div>';
+
+      // Status cell
+      var td2 = document.createElement('td');
+      td2.innerHTML = has
+        ? '<span class="tag-active">✓ Active</span>'
+        : '<span class="tag-none">○ Not assigned</span>';
+
+      // Email+Password cell
+      var td3 = document.createElement('td');
+      if(has) {
+        var wrap = document.createElement('div');
+        wrap.style.cssText = 'display:flex;flex-direction:column;gap:4px;';
+        var etag = document.createElement('span');
+        etag.className = 'etag';
+        etag.style.fontSize = '11px';
+        etag.textContent = '📧 ' + email;
+        var ptag = document.createElement('span');
+        ptag.className = 'etag';
+        ptag.style.cssText = 'font-size:11px;background:rgba(124,111,255,0.08);border-color:rgba(124,111,255,0.2);color:var(--accent);';
+        ptag.textContent = '🔑 ' + pass;
+        var editBtn = document.createElement('button');
+        editBtn.className = 'abtn';
+        editBtn.style.cssText = 'font-size:11px;padding:4px 10px;background:rgba(124,111,255,0.2);margin-top:2px;';
+        editBtn.textContent = '✏️ Edit';
+        editBtn.onclick = (function(e,i){ return function(){ updateEmp(e,i); }; })(emp,idx);
+        wrap.appendChild(etag); wrap.appendChild(ptag); wrap.appendChild(editBtn);
+        td3.appendChild(wrap);
+      } else {
+        var wrap = document.createElement('div');
+        wrap.className = 'einrow';
+        wrap.style.cssText = 'flex-direction:column;gap:6px;align-items:stretch;';
+        var einput = document.createElement('input');
+        einput.type = 'email'; einput.id = 'ei'+idx; einput.placeholder = 'Employee email address';
+        var pinput = document.createElement('input');
+        pinput.type = 'text'; pinput.id = 'pi'+idx; pinput.placeholder = 'Set a password for '+emp;
+        pinput.style.cssText = 'background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 11px;color:var(--text);font-family:DM Sans,sans-serif;font-size:12px;outline:none;width:100%;';
+        var abtn = document.createElement('button');
+        abtn.className = 'abtn'; abtn.textContent = 'Assign Access';
+        abtn.onclick = (function(e,i){ return function(){ assignEmp(e,i); }; })(emp,idx);
+        wrap.appendChild(einput); wrap.appendChild(pinput); wrap.appendChild(abtn);
+        td3.appendChild(wrap);
+      }
+
+      // Action cell
+      var td4 = document.createElement('td');
+      if(has) {
+        var rbtn = document.createElement('button');
+        rbtn.className = 'rbtn'; rbtn.textContent = 'Revoke';
+        rbtn.onclick = (function(e){ return function(){ revokeEmp(e); }; })(emp);
+        td4.appendChild(rbtn);
+      } else {
+        td4.innerHTML = '<span style="color:var(--muted);font-size:12px;">—</span>';
+      }
+
+      tr.appendChild(td0); tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3); tr.appendChild(td4);
+      tb.appendChild(tr);
+    })(EMPS[i], i);
+  }
+}
+
+function assignEmp(emp, idx) {
+  var el = document.getElementById('ei'+idx);
+  var pl = document.getElementById('pi'+idx);
+  if(!el||!pl) return;
+  var email = el.value.trim().toLowerCase();
+  var pass  = pl.value.trim();
+  if(!email){ showToast('Enter an email address','error'); return; }
+  if(!email.includes('@')){ showToast('Enter a valid email','error'); return; }
+  if(!pass){ showToast('Enter a password for '+emp,'error'); return; }
+  var adminEmails = ADMINS.map(function(a){ return a.email.toLowerCase(); });
+  if(adminEmails.indexOf(email) !== -1){ showToast('Cannot use an admin email for an employee','error'); return; }
+  var map = getMap(), keys = Object.keys(map);
+  for(var i=0;i<keys.length;i++){
+    var existing = map[keys[i]];
+    var existEmail = typeof existing==='string' ? existing : (existing&&existing.email ? existing.email : '');
+    if(existEmail.toLowerCase()===email && keys[i]!==emp){ showToast('Email already assigned to '+keys[i],'error'); return; }
+  }
+  map[emp] = { email:email, pass:pass };
+  setMap(map);
+  showToast('Access granted to '+emp+' ✓','success');
+  renderAccessTable();
+}
+
+function revokeEmp(emp) {
+  var map = getMap();
+  delete map[emp];
+  setMap(map);
+  showToast('Access revoked for '+emp,'info');
+  renderAccessTable();
+}
+
+function updateEmp(emp, idx) {
+  var map = getMap();
+  var rec = map[emp] || {};
+  var currentEmail = typeof rec==='string' ? rec : (rec.email||'');
+  var currentPass  = typeof rec==='string' ? '' : (rec.pass||'');
+  var newEmail = prompt('Update email for '+emp+':', currentEmail);
+  if(newEmail===null) return;
+  var newPass = prompt('Update password for '+emp+':', currentPass);
+  if(newPass===null) return;
+  newEmail = newEmail.trim().toLowerCase();
+  newPass  = newPass.trim();
+  if(!newEmail||!newEmail.includes('@')){ showToast('Invalid email','error'); return; }
+  if(!newPass){ showToast('Password cannot be empty','error'); return; }
+  map[emp] = { email:newEmail, pass:newPass };
+  setMap(map);
+  showToast('Credentials updated for '+emp+' ✓','success');
+  renderAccessTable();
+}
+
+
+// ===================== RANKINGS =====================
+function getMonthAvg(emp, monthIdx) {
+  var total=0, count=0;
+  for(var w=1;w<=4;w++) {
+    var r=getRating(monthIdx,w,emp);
+    if(r && r.avg && r.avg!=='—') { total+=parseFloat(r.avg); count++; }
+  }
+  return count>0 ? parseFloat((total/count).toFixed(3)) : null;
+}
+
+function getRankedList(monthIdx) {
+  EMPS = getEmps();
+  var list=[];
+  for(var i=0;i<EMPS.length;i++) {
+    var avg = getMonthAvg(EMPS[i], monthIdx);
+    list.push({ name:EMPS[i], avg:avg });
+  }
+  list.sort(function(a,b){
+    if(a.avg===null && b.avg===null) return 0;
+    if(a.avg===null) return 1;
+    if(b.avg===null) return -1;
+    return b.avg - a.avg;
+  });
+  // assign ranks (ties get same rank)
+  var rank=1;
+  for(var i=0;i<list.length;i++) {
+    if(i>0 && list[i].avg!==null && list[i].avg===list[i-1].avg) {
+      list[i].rank = list[i-1].rank;
+    } else if(list[i].avg===null) {
+      list[i].rank = '—';
+    } else {
+      list[i].rank = rank;
+    }
+    rank++;
+  }
+  return list;
+}
+
+function initRankMonth() {
+  var sel = document.getElementById('rank-month');
+  if(!sel) return;
+  sel.innerHTML='';
+  for(var i=0;i<MONTHS.length;i++) {
+    var o=document.createElement('option'); o.value=i; o.textContent=MONTHS[i]+' 2026'; sel.appendChild(o);
+  }
+}
+
+function renderRankings() {
+  var mi = parseInt(document.getElementById('rank-month').value||0);
+  var list = getRankedList(mi);
+  var el = document.getElementById('rankings-content');
+  if(!el) return;
+
+  var medalColors = ['linear-gradient(135deg,#FFD700,#FFA500)','linear-gradient(135deg,#C0C0C0,#A0A0A0)','linear-gradient(135deg,#CD7F32,#8B4513)'];
+  var medals = ['🥇','🥈','🥉'];
+
+  var html = '<div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;">';
+  html += '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">'
+    +'<div style="font-family:Syne,sans-serif;font-size:16px;font-weight:700;">'+MONTHS[mi]+' 2026 Rankings</div>'
+    +'<div style="font-size:12px;color:var(--muted);">'+list.filter(function(l){return l.avg!==null;}).length+' rated employees</div>'
+    +'</div>';
+
+  // Top 3 highlight
+  var top3 = list.filter(function(l){return l.avg!==null;}).slice(0,3);
+  if(top3.length>0) {
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:0;border-bottom:1px solid var(--border);">';
+    for(var i=0;i<top3.length;i++) {
+      html += '<div style="padding:20px;text-align:center;border-right:1px solid var(--border);background:rgba(124,111,255,0.03);">'
+        +'<div style="font-size:32px;margin-bottom:6px;">'+medals[i]+'</div>'
+        +'<div style="width:44px;height:44px;border-radius:50%;background:'+medalColors[i]+';display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-size:14px;font-weight:800;margin:0 auto 8px;">'+initials(top3[i].name)+'</div>'
+        +'<div style="font-family:Syne,sans-serif;font-size:13px;font-weight:700;">'+top3[i].name+'</div>'
+        +'<div style="font-size:20px;font-weight:800;color:var(--accent);font-family:Syne,sans-serif;margin-top:4px;">'+top3[i].avg.toFixed(2)+'</div>'
+        +'<div style="font-size:10px;color:var(--muted);">/ 5.00</div>'
+        +'</div>';
+    }
+    html += '</div>';
+  }
+
+  // Full table
+  html += '<table style="width:100%;border-collapse:collapse;">';
+  html += '<thead><tr>'
+    +'<th style="text-align:center;padding:10px 16px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);width:60px;">Rank</th>'
+    +'<th style="text-align:left;padding:10px 16px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">Employee</th>'
+    +'<th style="text-align:center;padding:10px 16px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">W1</th>'
+    +'<th style="text-align:center;padding:10px 16px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">W2</th>'
+    +'<th style="text-align:center;padding:10px 16px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">W3</th>'
+    +'<th style="text-align:center;padding:10px 16px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">W4</th>'
+    +'<th style="text-align:center;padding:10px 16px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">Monthly Avg</th>'
+    +'</tr></thead><tbody>';
+
+  for(var i=0;i<list.length;i++) {
+    var emp=list[i];
+    var rankDisp = emp.rank==='—' ? '<span style="color:var(--muted)">—</span>'
+      : emp.rank<=3 ? medals[emp.rank-1]
+      : '<span style="font-family:Syne,sans-serif;font-weight:700;color:'+(emp.rank<=10?'var(--accent)':'var(--muted)')+'">'+emp.rank+'</span>';
+    var wAvgs='';
+    for(var w=1;w<=4;w++) {
+      var wr=getRating(mi,w,emp.name);
+      var wv=wr&&wr.avg&&wr.avg!=='—'?parseFloat(wr.avg).toFixed(2):'—';
+      wAvgs+='<td style="text-align:center;padding:10px 8px;font-size:13px;border-bottom:1px solid rgba(38,38,74,0.4);color:'+(wv!=='—'?'var(--text)':'var(--muted)')+';">'+wv+'</td>';
+    }
+    var avgDisp = emp.avg!==null
+      ? '<span style="font-family:Syne,sans-serif;font-weight:800;font-size:15px;color:'+(emp.avg>=4?'var(--accent3)':emp.avg>=3?'var(--accent)':'var(--accent2)')+'">'+emp.avg.toFixed(2)+'</span>'
+      : '<span style="color:var(--muted)">No data</span>';
+    html+='<tr style="'+(i<3&&emp.avg!==null?'background:rgba(124,111,255,0.04);':'')+'">'
+      +'<td style="text-align:center;padding:10px 16px;border-bottom:1px solid rgba(38,38,74,0.4);">'+rankDisp+'</td>'
+      +'<td style="padding:10px 16px;border-bottom:1px solid rgba(38,38,74,0.4);"><div style="display:flex;align-items:center;gap:10px;"><div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:Syne,sans-serif;flex-shrink:0;">'+initials(emp.name)+'</div><span style="font-size:13px;font-weight:500;">'+emp.name+'</span></div></td>'
+      +wAvgs
+      +'<td style="text-align:center;padding:10px 16px;border-bottom:1px solid rgba(38,38,74,0.4);">'+avgDisp+'</td>'
+      +'</tr>';
+  }
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
+}
+
+// ===================== TOP PERFORMERS =====================
+function getPhotoKey(emp, monthIdx) { return 'photo_'+monthIdx+'_'+emp.replace(/\s+/g,'_'); }
+
+function renderToppers() {
+  EMPS = getEmps();
+  var el = document.getElementById('toppers-content');
+  if(!el) return;
+  var html='';
+
+  for(var mi=0;mi<MONTHS.length;mi++) {
+    var list = getRankedList(mi).filter(function(l){return l.avg!==null;});
+    if(list.length===0) continue;
+    var top3 = list.slice(0,3);
+    var medals=['🥇','🥈','🥉'];
+    var medalLabels=['1st Place','2nd Place','3rd Place'];
+    var medalGrad=['linear-gradient(135deg,#FFD700,#FFA500)','linear-gradient(135deg,#C0C0C0,#808080)','linear-gradient(135deg,#CD7F32,#8B4513)'];
+    var medalBg=['rgba(255,215,0,0.08)','rgba(192,192,192,0.06)','rgba(205,127,50,0.06)'];
+    var medalBorder=['rgba(255,215,0,0.25)','rgba(192,192,192,0.2)','rgba(205,127,50,0.2)'];
+
+    html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px;margin-bottom:20px;">';
+    html+='<div style="font-family:Syne,sans-serif;font-size:18px;font-weight:800;margin-bottom:4px;">'+MONTHS[mi]+' 2026</div>';
+    html+='<div style="font-size:13px;color:var(--muted);margin-bottom:20px;">Top performers based on monthly average</div>';
+    html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;">';
+
+    for(var t=0;t<top3.length;t++) {
+      var emp=top3[t].name;
+      var avg=top3[t].avg;
+      var photoKey=getPhotoKey(emp,mi);
+      var photo=lsGet(photoKey);
+      var photoHtml = photo
+        ? '<img src="'+photo+'" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid '+medalGrad[t].split(',')[1].replace(')','').trim()+';" />'
+        : '<div style="width:80px;height:80px;border-radius:50%;background:'+medalGrad[t]+';display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-size:24px;font-weight:800;color:white;">'+initials(emp)+'</div>';
+
+      html+='<div style="background:'+medalBg[t]+';border:1px solid '+medalBorder[t]+';border-radius:16px;padding:20px;text-align:center;position:relative;">'
+        +'<div style="font-size:28px;margin-bottom:12px;">'+medals[t]+'</div>'
+        +'<div style="display:flex;justify-content:center;margin-bottom:12px;position:relative;">'
+        +photoHtml
+        +'</div>'
+        +'<div style="font-family:Syne,sans-serif;font-size:15px;font-weight:800;margin-bottom:4px;">'+emp+'</div>'
+        +'<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">'+medalLabels[t]+'</div>'
+        +'<div style="font-size:24px;font-weight:800;font-family:Syne,sans-serif;color:'+(t===0?'#FFD700':t===1?'#C0C0C0':'#CD7F32')+';">'+avg.toFixed(2)+'<span style="font-size:12px;color:var(--muted)"> / 5</span></div>'
+        +(cu.role==='manager'?'<label style="display:inline-block;margin-top:12px;padding:6px 12px;background:rgba(124,111,255,0.15);border:1px solid rgba(124,111,255,0.3);border-radius:8px;color:var(--accent);font-size:11px;font-weight:600;cursor:pointer;">📷 Upload Photo<input type="file" accept="image/*" style="display:none;" onchange="uploadPhoto(this,\''+emp+'\','+mi+')" /></label>':'')
+        +(cu.role==='manager'&&photo?'<button onclick="removePhoto(\''+emp+'\','+mi+')" style="display:block;margin:6px auto 0;background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;">✕ Remove photo</button>':'')
+        +'</div>';
+    }
+    html+='</div></div>';
+  }
+
+  if(!html) html='<div style="text-align:center;padding:60px 20px;color:var(--muted);"><div style="font-size:48px;margin-bottom:16px;">🏆</div><div style="font-size:16px;">No ratings submitted yet.</div><div style="font-size:13px;margin-top:6px;">Start rating employees to see top performers appear here.</div></div>';
+  el.innerHTML=html;
+}
+
+function uploadPhoto(input, emp, monthIdx) {
+  var file=input.files[0]; if(!file) return;
+  if(file.size > 2*1024*1024) { showToast('Image too large. Max 2MB.','error'); return; }
+  var reader=new FileReader();
+  reader.onload=function(e){
+    lsSet(getPhotoKey(emp,monthIdx), e.target.result);
+    showToast('Photo uploaded for '+emp+' ✓','success');
+    renderToppers();
+  };
+  reader.readAsDataURL(file);
+}
+
+function removePhoto(emp, monthIdx) {
+  try { localStorage.removeItem('photo_'+monthIdx+'_'+emp.replace(/\s+/g,'_')); } catch(e){}
+  showToast('Photo removed','info');
+  renderToppers();
+}
+
+// ===================== GRAPH FUNCTIONS =====================
+var chartInstance = null;
+var teamChartInstance = null;
+
+function initGraphSelects() {
+  EMPS = getEmps();
+  var ge = document.getElementById('graph-emp');
+  var gm = document.getElementById('graph-month');
+  var tm = document.getElementById('team-month');
+  if(!ge) return;
+  ge.innerHTML = '';
+  for(var i=0;i<EMPS.length;i++) {
+    var o=document.createElement('option'); o.value=EMPS[i]; o.textContent=EMPS[i]; ge.appendChild(o);
+  }
+  ge.onchange = function() { renderGraph(); };
+  if(gm) { gm.innerHTML=''; for(var i=0;i<MONTHS.length;i++){var o=document.createElement('option');o.value=i;o.textContent=MONTHS[i]+' 2026';gm.appendChild(o);} }
+  if(tm) { tm.innerHTML=''; for(var i=0;i<MONTHS.length;i++){var o=document.createElement('option');o.value=i;o.textContent=MONTHS[i]+' 2026';tm.appendChild(o);} }
+  var gv = document.getElementById('graph-view');
+  if(gv) gv.onchange = function() {
+    document.getElementById('graph-month-wrap').style.display = (this.value==='by-month'||this.value==='criteria') ? 'block' : 'none';
+    renderGraph();
+  };
+}
+
+function renderGraph() {
+  var geEl=document.getElementById('graph-emp');
+  var gvEl=document.getElementById('graph-view');
+  var gmEl=document.getElementById('graph-month');
+  if(!geEl||!gvEl) return;
+  var emp=geEl.value, view=gvEl.value, monthIdx=parseInt(gmEl?gmEl.value:0);
+  var canvas=document.getElementById('ratingChart');
+  if(!canvas) return;
+  if(chartInstance){chartInstance.destroy();chartInstance=null;}
+  var weekColors=['#7c6fff','#ff6b9d','#38ef7d','#ffc94a'];
+
+  if(view==='all-weeks') {
+    var labels=[],data=[];
+    for(var mi=0;mi<MONTHS.length;mi++) for(var w=1;w<=4;w++) {
+      var r=getRating(mi,w,emp);
+      if(r&&r.avg&&r.avg!=='—'){labels.push(MONTHS[mi].substr(0,3)+' W'+w);data.push(parseFloat(r.avg));}
+    }
+    if(!data.length){canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);return;}
+    chartInstance=new Chart(canvas,{type:'line',data:{labels:labels,datasets:[{label:emp+' — Avg Rating',data:data,borderColor:'#7c6fff',backgroundColor:'rgba(124,111,255,0.1)',borderWidth:2.5,pointBackgroundColor:'#7c6fff',pointRadius:5,pointHoverRadius:7,tension:0.3,fill:true}]},options:getChartOptions('Rating (out of 5)',0,5)});
+  } else if(view==='by-month') {
+    var labels=['Week 1','Week 2','Week 3','Week 4'],data=[];
+    for(var w=1;w<=4;w++){var r=getRating(monthIdx,w,emp);data.push(r&&r.avg&&r.avg!=='—'?parseFloat(r.avg):null);}
+    chartInstance=new Chart(canvas,{type:'bar',data:{labels:labels,datasets:[{label:emp+' — '+MONTHS[monthIdx],data:data,backgroundColor:['rgba(124,111,255,0.7)','rgba(255,107,157,0.7)','rgba(56,239,125,0.7)','rgba(255,201,74,0.7)'],borderColor:weekColors,borderWidth:2,borderRadius:8}]},options:getChartOptions('Rating (out of 5)',0,5)});
+  } else if(view==='criteria') {
+    var ds=[];
+    for(var w=1;w<=4;w++){
+      var r=getRating(monthIdx,w,emp),wdata=[];
+      for(var ci=0;ci<CRITERIA.length;ci++) wdata.push(r&&r.criteria?(r.criteria[CRITERIA[ci]]||0):0);
+      ds.push({label:'Week '+w,data:wdata,borderColor:weekColors[w-1],backgroundColor:weekColors[w-1]+'33',borderWidth:2,pointRadius:4});
+    }
+    var shortLabels=CRITERIA.map(function(l){return l.length>16?l.substring(0,16)+'…':l;});
+    chartInstance=new Chart(canvas,{type:'radar',data:{labels:shortLabels,datasets:ds},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#e2e2f0',font:{family:'DM Sans'}}}},scales:{r:{min:0,max:5,ticks:{stepSize:1,color:'#6868a0',backdropColor:'transparent'},grid:{color:'rgba(104,104,160,0.2)'},pointLabels:{color:'#e2e2f0',font:{family:'DM Sans',size:11}},angleLines:{color:'rgba(104,104,160,0.2)'}}}}});
+  }
+}
+
+function renderTeamChart() {
+  var tmEl=document.getElementById('team-month');
+  if(!tmEl) return;
+  var monthIdx=parseInt(tmEl.value||0);
+  var canvas=document.getElementById('teamChart');
+  if(!canvas) return;
+  if(teamChartInstance){teamChartInstance.destroy();teamChartInstance=null;}
+  var labels=['Week 1','Week 2','Week 3','Week 4'],data=[];
+  EMPS=getEmps();
+  for(var w=1;w<=4;w++){
+    var total=0,cnt=0;
+    for(var i=0;i<EMPS.length;i++){var r=getRating(monthIdx,w,EMPS[i]);if(r&&r.avg&&r.avg!=='—'){total+=parseFloat(r.avg);cnt++;}}
+    data.push(cnt>0?parseFloat((total/cnt).toFixed(2)):null);
+  }
+  teamChartInstance=new Chart(canvas,{type:'bar',data:{labels:labels,datasets:[{label:'Team Avg — '+MONTHS[monthIdx],data:data,backgroundColor:['rgba(124,111,255,0.7)','rgba(255,107,157,0.7)','rgba(56,239,125,0.7)','rgba(255,201,74,0.7)'],borderColor:['#7c6fff','#ff6b9d','#38ef7d','#ffc94a'],borderWidth:2,borderRadius:8}]},options:getChartOptions('Team Average Rating',0,5)});
+}
+
+function getChartOptions(yLabel,yMin,yMax) {
+  return {responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#e2e2f0',font:{family:'DM Sans',size:12}}},tooltip:{backgroundColor:'rgba(16,16,28,0.95)',titleColor:'#e2e2f0',bodyColor:'#6868a0',borderColor:'#26264a',borderWidth:1,padding:12}},scales:{x:{ticks:{color:'#6868a0',font:{family:'DM Sans'}},grid:{color:'rgba(38,38,74,0.5)'}},y:{min:yMin,max:yMax,ticks:{color:'#6868a0',font:{family:'DM Sans'},stepSize:1},grid:{color:'rgba(38,38,74,0.5)'},title:{display:true,text:yLabel,color:'#6868a0',font:{family:'DM Sans',size:11}}}}};
+}
+
+// ===================== CSV EXPORT FUNCTIONS =====================
+function initExportSelects() {
+  EMPS = getEmps();
+  var em=document.getElementById('export-month');
+  var ee=document.getElementById('export-emp');
+  if(!em||!ee) return;
+  em.innerHTML=''; ee.innerHTML='';
+  for(var i=0;i<MONTHS.length;i++){var o=document.createElement('option');o.value=i;o.textContent=MONTHS[i]+' 2026';em.appendChild(o);}
+  for(var i=0;i<EMPS.length;i++){var o=document.createElement('option');o.value=EMPS[i];o.textContent=EMPS[i];ee.appendChild(o);}
+}
+
+function buildCSVRows(empFilter,monthFilter) {
+  EMPS=getEmps();
+  var headers=['Employee','Month','Week','Attendance/Availability','Professionalism/Behavior','Support Resolution Rate+FCR','Ownership','Quality & CSAT','Proactiveness','Average','Comments','Saved By','Last Edited At'];
+  var rows=[headers];
+  var emps=empFilter?[empFilter]:EMPS;
+  for(var i=0;i<emps.length;i++) {
+    var emp=emps[i];
+    for(var mi=0;mi<MONTHS.length;mi++) {
+      if(monthFilter!==null&&monthFilter!==undefined&&monthFilter!==mi) continue;
+      for(var w=1;w<=4;w++) {
+        var r=getRating(mi,w,emp);
+        if(r) {
+          rows.push(['"'+emp+'"',MONTHS[mi],'Week '+w,
+            r.criteria[CRITERIA[0]]||0,r.criteria[CRITERIA[1]]||0,r.criteria[CRITERIA[2]]||0,
+            r.criteria[CRITERIA[3]]||0,r.criteria[CRITERIA[4]]||0,r.criteria[CRITERIA[5]]||0,
+            r.avg,'"'+(r.comment||'').replace(/"/g,"''")+'"','"'+(r.savedBy||'Unknown')+'"',r.savedAt||'']);
+        }
+      }
+    }
+  }
+  return rows;
+}
+
+function downloadCSV(rows,filename) {
+  if(rows.length<=1){showToast('No rating data to export','error');return;}
+  var csv=rows.map(function(r){return r.join(',');}).join('\n');
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;a.download=filename;a.style.display='none';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  showToast('Downloaded: '+filename,'success');
+}
+
+function exportAllCSV() { downloadCSV(buildCSVRows(null,null),'team_ratings_all_2026.csv'); }
+function exportMonthCSV() { var mi=parseInt(document.getElementById('export-month').value); downloadCSV(buildCSVRows(null,mi),'team_ratings_'+MONTHS[mi]+'_2026.csv'); }
+function exportEmpCSV() { var emp=document.getElementById('export-emp').value; downloadCSV(buildCSVRows(emp,null),'rating_'+emp.replace(/\s+/g,'_')+'_2026.csv'); }
+
+// INIT — attach login button after DOM ready
+window.onload = function() {
+  var btn = document.getElementById('login-btn');
+  if(btn) {
+    btn.onclick = function() { doLogin(); };
+  }
+  var em = document.getElementById('lemail');
+  if(em) em.onkeypress = function(e) { if(e.keyCode===13||e.key==='Enter') doLogin(); };
+  // new employee input enter key
+  var nei = document.getElementById('new-emp-name');
+  if(nei) nei.onkeypress = function(e) { if(e.keyCode===13||e.key==='Enter') addEmployee(); };
+  var pw = document.getElementById('lpass');
+  if(pw) pw.onkeypress = function(e) { if(e.keyCode===13||e.key==='Enter') doLogin(); };
+};
+</script>
+</body>
+</html>
