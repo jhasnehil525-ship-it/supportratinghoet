@@ -32,10 +32,42 @@ body::after {
   background-size:48px 48px;
 }
 
+/* ── LOADING OVERLAY ── */
+#loading-overlay {
+  position:fixed; inset:0; z-index:500; background:var(--bg);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
+}
+.spinner {
+  width:48px; height:48px;
+  border:3px solid var(--border);
+  border-top-color:var(--accent);
+  border-radius:50%;
+  animation:spin 0.85s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+.loading-title { font-family:'Syne',sans-serif; font-size:18px; font-weight:800; color:var(--text); }
+#loading-msg { font-size:13px; color:var(--muted); }
+.loading-logo {
+  width:60px; height:60px; background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border-radius:18px; display:flex; align-items:center; justify-content:center; font-size:28px; margin-bottom:4px;
+}
+
+/* ── SYNC INDICATOR ── */
+.sync-chip {
+  display:flex; align-items:center; gap:6px; padding:5px 12px;
+  background:var(--surface2); border:1px solid var(--border); border-radius:20px; font-size:11px; color:var(--muted);
+}
+#sync-dot { width:7px; height:7px; border-radius:50%; background:var(--muted); transition:background 0.4s; flex-shrink:0; }
+#sync-dot.synced  { background:var(--accent3); box-shadow:0 0 6px var(--accent3); }
+#sync-dot.syncing { background:var(--accent4); animation:pulse 0.9s ease-in-out infinite; }
+#sync-dot.error   { background:var(--danger); }
+#sync-dot.local   { background:var(--muted); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
 /* LOGIN */
 #login-screen {
   position:fixed; inset:0; z-index:100;
-  display:flex; align-items:center; justify-content:center; background:var(--bg);
+  display:none; align-items:center; justify-content:center; background:var(--bg);
 }
 .login-card {
   background:var(--surface); border:1px solid var(--border); border-radius:24px;
@@ -65,6 +97,7 @@ body::after {
 }
 #login-btn:hover { opacity:0.9; transform:translateY(-1px); }
 #login-btn:active { transform:translateY(0); }
+#login-btn:disabled { opacity:0.6; cursor:default; transform:none; }
 .login-err {
   background:rgba(255,77,109,0.12); border:1px solid rgba(255,77,109,0.3);
   color:var(--danger); padding:11px 14px; border-radius:10px; font-size:13px;
@@ -85,7 +118,7 @@ header {
   border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px;
 }
 .htitle { font-family:'Syne',sans-serif; font-size:17px; font-weight:800; }
-.hr { display:flex; align-items:center; gap:10px; }
+.hr { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 .htabs { display:flex; gap:4px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:4px; }
 .htab { padding:6px 14px; border-radius:7px; font-size:13px; font-weight:500; cursor:pointer; color:var(--muted); transition:all 0.2s; border:none; background:none; }
 .htab.active { background:var(--accent); color:white; }
@@ -188,6 +221,7 @@ header {
 
 #save-btn { width:100%; margin-top:16px; padding:14px; background:linear-gradient(135deg,var(--accent),var(--accent2)); border:none; border-radius:12px; color:white; font-family:'Syne',sans-serif; font-size:15px; font-weight:700; cursor:pointer; transition:all 0.2s; }
 #save-btn:hover { opacity:0.9; transform:translateY(-1px); }
+#save-btn:disabled { opacity:0.6; cursor:default; transform:none; }
 
 /* SCALE CARD */
 .scalecard { background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:22px; position:sticky; top:76px; }
@@ -255,7 +289,7 @@ header {
 .empty { text-align:center; padding:40px 20px; color:var(--muted); font-size:14px; }
 
 @media(max-width:860px){
-  header,. bc,.main{ padding-left:20px; padding-right:20px; }
+  header,.bc,.main{ padding-left:20px; padding-right:20px; }
   .rlayout { grid-template-columns:1fr; }
   .wgrid { grid-template-columns:repeat(2,1fr); }
   .scalecard { position:static; }
@@ -264,6 +298,16 @@ header {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     LOADING OVERLAY — shown while connecting to Google Sheets
+     ═══════════════════════════════════════════════════════════ -->
+<div id="loading-overlay">
+  <div class="loading-logo">⭐</div>
+  <div class="loading-title">Team Performance</div>
+  <div class="spinner"></div>
+  <div id="loading-msg">Connecting to Google Sheets...</div>
+</div>
 
 <!-- LOGIN -->
 <div id="login-screen">
@@ -315,6 +359,11 @@ header {
         </div>
       </div>
       <div class="rbadge manager" id="rbadge">Manager</div>
+      <!-- Sync Status Indicator -->
+      <div class="sync-chip" id="sync-chip">
+        <div id="sync-dot" class="local"></div>
+        <span id="sync-text">Loading</span>
+      </div>
       <button class="logout-btn" type="button" onclick="doLogout()">Sign Out</button>
     </div>
   </header>
@@ -376,7 +425,7 @@ header {
                   </table>
                 </div>
               </div>
-              <div id="audit-trail"  style="display:none;margin-top:14px;padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;font-size:12px;"></div>
+              <div id="audit-trail" style="display:none;margin-top:14px;padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;font-size:12px;"></div>
               <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">
                 <button id="save-btn" type="button" onclick="saveRating()" style="flex:1;min-width:140px;">Save Rating ✓</button>
                 <button id="undo-btn" type="button" onclick="undoRating()" style="padding:14px 18px;background:rgba(255,201,74,0.15);border:1px solid rgba(255,201,74,0.3);border-radius:12px;color:var(--accent4);font-family:Syne,sans-serif;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;display:none;" title="Undo last change">↩ Undo</button>
@@ -401,7 +450,6 @@ header {
 
     </div>
 
-    <!-- ACCESS MANAGEMENT -->
     <!-- GRAPHS SECTION -->
     <div id="graphs-sec" style="display:none">
       <div class="ptitle">Performance Graphs</div>
@@ -426,11 +474,8 @@ header {
           </div>
           <button onclick="renderGraph()" style="margin-top:20px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;color:white;font-family:Syne,sans-serif;font-size:13px;font-weight:700;padding:10px 20px;cursor:pointer;">Update Graph</button>
         </div>
-        <div style="position:relative;height:380px;">
-          <canvas id="ratingChart"></canvas>
-        </div>
+        <div style="position:relative;height:380px;"><canvas id="ratingChart"></canvas></div>
       </div>
-      <!-- Team Overview Chart -->
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;">
         <div style="font-family:Syne,sans-serif;font-size:16px;font-weight:700;margin-bottom:4px;">Team Average Overview</div>
         <div style="font-size:13px;color:var(--muted);margin-bottom:20px;">Average rating of all employees per week</div>
@@ -438,9 +483,7 @@ header {
           <label style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);display:block;margin-bottom:6px;">Month</label>
           <select id="team-month" onchange="renderTeamChart()" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:9px 14px;color:var(--text);font-family:DM Sans,sans-serif;font-size:13px;outline:none;cursor:pointer;margin-bottom:16px;"></select>
         </div>
-        <div style="position:relative;height:320px;">
-          <canvas id="teamChart"></canvas>
-        </div>
+        <div style="position:relative;height:320px;"><canvas id="teamChart"></canvas></div>
       </div>
     </div>
 
@@ -492,16 +535,17 @@ header {
       <div id="toppers-content"></div>
     </div>
 
+    <!-- ACCESS MANAGEMENT -->
     <div id="access-sec" style="display:none">
       <div class="ptitle">Access Management</div>
       <div class="psub">Assign employee emails so they can log in and view only their own ratings.</div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:20px;">
-        <div style="font-family:Syne,sans-serif;font-size:14px;font-weight:700;margin-bottom:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-size:11px;">Admin Accounts</div>
+        <div style="font-family:Syne,sans-serif;font-size:11px;font-weight:700;margin-bottom:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Admin Accounts</div>
         <div style="display:flex;flex-wrap:wrap;gap:10px;" id="admin-list"></div>
       </div>
       <div class="asec" style="margin-bottom:20px;">
         <h3>Manage Employees</h3>
-        <p>Add new employees to the team or remove existing ones. Removing an employee will also revoke their login access.</p>
+        <p>Add new employees to the team or remove existing ones.</p>
         <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
           <input type="text" id="new-emp-name" placeholder="Enter employee full name..." style="flex:1;min-width:200px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:11px 16px;color:var(--text);font-family:DM Sans,sans-serif;font-size:14px;outline:none;">
           <button onclick="addEmployee()" style="background:linear-gradient(135deg,var(--accent3),var(--accent));border:none;border-radius:10px;color:#080810;font-family:Syne,sans-serif;font-size:14px;font-weight:700;padding:11px 22px;cursor:pointer;white-space:nowrap;">+ Add Employee</button>
@@ -524,6 +568,282 @@ header {
 <div class="toast" id="toast"></div>
 
 <script>
+/*
+╔══════════════════════════════════════════════════════════════════════╗
+║           GOOGLE SHEETS SETUP — FOLLOW THESE STEPS ONCE             ║
+╠══════════════════════════════════════════════════════════════════════╣
+║                                                                      ║
+║  STEP 1 — Create a Google Sheet                                      ║
+║    • Go to sheets.google.com → create a new blank spreadsheet        ║
+║    • Name it "Team Performance Data" (or anything you like)          ║
+║                                                                      ║
+║  STEP 2 — Open Apps Script                                           ║
+║    • In the sheet: Extensions → Apps Script                          ║
+║    • Delete ALL existing code in the editor                          ║
+║    • Copy and paste the Apps Script code below                       ║
+║    • Click 💾 Save (Ctrl+S)                                          ║
+║                                                                      ║
+║  STEP 3 — Deploy as Web App                                          ║
+║    • Click "Deploy" → "New Deployment"                               ║
+║    • Click the gear ⚙ next to "Type" → select "Web App"             ║
+║    • Description: "Team Performance API"                             ║
+║    • Execute as: Me                                                   ║
+║    • Who has access: Anyone                                          ║
+║    • Click "Deploy" → Authorize when prompted                        ║
+║    • COPY the Web App URL (looks like:                               ║
+║      https://script.google.com/macros/s/AKfy.../exec)               ║
+║                                                                      ║
+║  STEP 4 — Paste URL below                                            ║
+║    • Find the line: var GAS_URL = 'YOUR_...'                         ║
+║    • Replace the placeholder with your copied URL                    ║
+║    • Save the HTML file — you're done! ✅                            ║
+║                                                                      ║
+║  ⚠️  IMPORTANT: Every time you modify the Apps Script code,          ║
+║      you must create a NEW deployment (not update existing).         ║
+║      Only new deployments pick up code changes in GAS.               ║
+║                                                                      ║
+╠══════════════════════════════════════════════════════════════════════╣
+║                  APPS SCRIPT CODE — COPY BELOW                       ║
+╠══════════════════════════════════════════════════════════════════════╣
+
+function doGet(e) {
+  var lock = LockService.getScriptLock();
+  lock.tryLock(5000);
+  try {
+    var action = e.parameter.action;
+    if (action === 'getAll') return out(getAllData());
+    if (action === 'ping')   return out({ status: 'ok', time: new Date().toISOString() });
+    return out({ error: 'Unknown action' });
+  } finally { lock.releaseLock(); }
+}
+
+function doPost(e) {
+  var lock = LockService.getScriptLock();
+  lock.tryLock(10000);
+  try {
+    var d = JSON.parse(e.postData.contents);
+    if (d.action === 'set')      return out(setKey(d.key, d.value));
+    if (d.action === 'delete')   return out(deleteKey(d.key));
+    if (d.action === 'setBatch') return out(setBatch(d.pairs));
+    return out({ error: 'Unknown action' });
+  } finally { lock.releaseLock(); }
+}
+
+function out(data) {
+  return ContentService.createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function getSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('AppData');
+  if (!sheet) {
+    sheet = ss.insertSheet('AppData');
+    sheet.getRange(1, 1, 1, 3).setValues([['Key', 'Value', 'Last Updated']]);
+    sheet.setFrozenRows(1);
+    sheet.setColumnWidth(1, 280);
+    sheet.setColumnWidth(2, 700);
+    sheet.setColumnWidth(3, 180);
+  }
+  return sheet;
+}
+
+function getAllData() {
+  var sheet = getSheet();
+  var rows = sheet.getDataRange().getValues();
+  var result = {};
+  for (var i = 1; i < rows.length; i++) {
+    if (!rows[i][0]) continue;
+    try { result[rows[i][0]] = JSON.parse(rows[i][1]); }
+    catch (e) { result[rows[i][0]] = rows[i][1]; }
+  }
+  return result;
+}
+
+function setKey(key, value) {
+  var sheet = getSheet();
+  var rows = sheet.getDataRange().getValues();
+  var val = JSON.stringify(value);
+  var now = new Date().toISOString();
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0] === key) {
+      sheet.getRange(i + 1, 2, 1, 2).setValues([[val, now]]);
+      return { success: true };
+    }
+  }
+  sheet.appendRow([key, val, now]);
+  return { success: true };
+}
+
+function deleteKey(key) {
+  var sheet = getSheet();
+  var rows = sheet.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0] === key) {
+      sheet.deleteRow(i + 1);
+      return { success: true };
+    }
+  }
+  return { success: true };
+}
+
+function setBatch(pairs) {
+  var keys = Object.keys(pairs);
+  for (var i = 0; i < keys.length; i++) setKey(keys[i], pairs[keys[i]]);
+  return { success: true, count: keys.length };
+}
+
+╠══════════════════════════════════════════════════════════════════════╣
+║                    END OF APPS SCRIPT CODE                           ║
+╚══════════════════════════════════════════════════════════════════════╝
+*/
+
+// ════════════════════════════════════════════════════════════
+//  ★ PASTE YOUR APPS SCRIPT WEB APP URL BELOW ★
+// ════════════════════════════════════════════════════════════
+var GAS_URL = 'https://script.google.com/macros/s/AKfycbylqCRNDucOPMksDCZlzbZX7v9tybC1kB0OJZAE3CsxRyIRmpzj38_Nj7SILYGRKrIB/exec';
+// ════════════════════════════════════════════════════════════
+
+// ── In-Memory Database ──────────────────────────────────────
+var DB = {};          // All app data lives here after initial load
+var DB_LOADED = false;
+var GAS_ENABLED = false;
+
+function isGASConfigured() {
+  return GAS_URL && GAS_URL !== 'YOUR_APPS_SCRIPT_URL_HERE' && GAS_URL.indexOf('script.google.com') !== -1;
+}
+
+async function loadAllData() {
+  if (!isGASConfigured()) {
+    // No GAS — fall back to localStorage entirely
+    DB_LOADED = true;
+    GAS_ENABLED = false;
+    setSyncStatus('local');
+    setLoadingMsg('Using local storage (GAS not configured)');
+    return;
+  }
+  GAS_ENABLED = true;
+  setSyncStatus('syncing');
+  setLoadingMsg('Connecting to Google Sheets...');
+  try {
+    var res = await fetch(GAS_URL + '?action=getAll', { method:'GET', redirect:'follow', cache:'no-cache' });
+    var json = await res.json();
+    DB = (json && json.ok && json.data) ? json.data : {};
+    // Mirror into localStorage as offline cache
+    Object.keys(DB).forEach(function(k) {
+      try { localStorage.setItem(k, JSON.stringify(DB[k])); } catch(e) {}
+    });
+    DB_LOADED = true;
+    setSyncStatus('synced');
+    setLoadingMsg('Loaded successfully ✓');
+  } catch (err) {
+    console.warn('[GAS] Load failed, falling back to localStorage:', err);
+    // Fall back to localStorage cache silently
+    DB_LOADED = true;
+    setSyncStatus('error');
+    setLoadingMsg('Could not reach Google Sheets — using cached data');
+    // Small delay so user can read the message
+    await new Promise(function(r){ setTimeout(r, 1200); });
+  }
+}
+
+// ── DB Read ─────────────────────────────────────────────────
+function dbGet(k) {
+  // If GAS loaded, DB is source of truth; else fall back to localStorage
+  if (DB_LOADED && DB.hasOwnProperty(k)) return DB[k];
+  try { var v = localStorage.getItem(k); return v !== null ? JSON.parse(v) : null; } catch(e) { return null; }
+}
+
+// ── DB Write (updates memory + localStorage + syncs to GAS) ─
+function dbSet(k, v) {
+  DB[k] = v;
+  try { localStorage.setItem(k, JSON.stringify(v)); } catch(e) {}
+  if (GAS_ENABLED) {
+    setSyncStatus('syncing');
+    // mode:'no-cors' bypasses the CORS/redirect issue GAS has with POST.
+    // The request IS sent and GAS writes it — we just can't read the opaque response.
+    fetch(GAS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'set', sheet: 'data', key: k, value: v })
+    })
+    .then(function() {
+      setSyncStatus('synced'); // response is opaque — optimistically mark synced
+    })
+    .catch(function() {
+      setSyncStatus('error');
+      showToast('⚠️ Could not sync to Google Sheets', 'error');
+    });
+  }
+}
+
+// ── DB Delete ────────────────────────────────────────────────
+function dbDelete(k) {
+  delete DB[k];
+  try { localStorage.removeItem(k); } catch(e) {}
+  if (GAS_ENABLED) {
+    setSyncStatus('syncing');
+    fetch(GAS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'delete', sheet: 'data', key: k })
+    })
+    .then(function() {
+      setSyncStatus('synced');
+    })
+    .catch(function() {
+      setSyncStatus('error');
+      showToast('⚠️ Could not sync deletion to Google Sheets', 'error');
+    });
+  }
+}
+
+// ── Photos stay LOCAL ONLY (base64 is too large for Sheets) ─
+function lsGetLocal(k) {
+  try { var v = localStorage.getItem(k); return v !== null ? JSON.parse(v) : null; } catch(e) { return null; }
+}
+function lsSetLocal(k, v) {
+  try { localStorage.setItem(k, JSON.stringify(v)); } catch(e) {}
+}
+
+// ── Sync Status UI ───────────────────────────────────────────
+function setSyncStatus(status) {
+  var dot  = document.getElementById('sync-dot');
+  var text = document.getElementById('sync-text');
+  if (!dot || !text) return;
+  var map = {
+    synced:  { cls:'synced',  label:'✓ Synced'      },
+    syncing: { cls:'syncing', label:'⟳ Syncing...'  },
+    error:   { cls:'error',   label:'⚠ Sync Error'  },
+    local:   { cls:'local',   label:'○ Local Only'  }
+  };
+  var s = map[status] || map.local;
+  dot.className = s.cls;
+  text.textContent = s.label;
+}
+
+function setLoadingMsg(msg) {
+  var el = document.getElementById('loading-msg');
+  if (el) el.textContent = msg;
+}
+
+// ── Replaced storage primitives ──────────────────────────────
+function lsGet(k)   { return dbGet(k); }
+function lsSet(k,v) { dbSet(k, v); }
+
+// ── App-level helpers that use storage ───────────────────────
+function getMap()   { return lsGet('access_map') || {}; }
+function setMap(m)  { lsSet('access_map', m); }
+function getEmps()  { return lsGet('employee_list') || DEFAULT_EMPS; }
+function saveEmps(list) { lsSet('employee_list', list); }
+function getRating(mo,w,e) { return lsGet('r26_'+mo+'_w'+w+'_'+e); }
+function setRating(mo,w,e,d) { lsSet('r26_'+mo+'_w'+w+'_'+e, d); }
+function cntRatings(mo,w) { var c=0; for(var i=0;i<EMPS.length;i++) if(getRating(mo,w,EMPS[i])) c++; return c; }
+function cntMonth(mo) { var t=0; for(var w=1;w<=4;w++) t+=cntRatings(mo,w); return t; }
+
+// ── App Data ──────────────────────────────────────────────────
 var MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 var DEFAULT_EMPS = [
@@ -533,11 +853,7 @@ var DEFAULT_EMPS = [
   'Anupa Gain','Arundhuti Ganguly','Md.Badruddin','Sufi','Ayan Ghosh','Nabrupa Ghosh','Shreyam',
   'Vicky Shaw','Aman','Sakshi Jha','Harshita','Nayeemuddin','Suman Singha'
 ];
-function getEmps() { return lsGet('employee_list') || DEFAULT_EMPS; }
-function saveEmps(list) { lsSet('employee_list', list); }
-// EMPS is now a live reference — always call getEmps() for current list
-var EMPS = DEFAULT_EMPS; // will be refreshed on startApp
-
+var EMPS = DEFAULT_EMPS;
 
 var KPI_DEFS = [
   { key:'quality',       name:'Quality',                      desc:'How good and correct your replies are.',                         target:'90%',          unit:'%',       targetNum:90  },
@@ -557,6 +873,26 @@ var KPI_DEFS = [
 
 var curKPI = {};
 
+var CRITERIA = [
+  'Attendance / Availability',
+  'Professionalism / Behavior',
+  'Support Resolution Rate + FCR',
+  'Ownership',
+  'Quality & CSAT',
+  'Proactiveness'
+];
+
+var ADMINS = [
+  { email: atob('cHJpeWFua2Euc2luZ2hAaG91c2VvZmVkdGVjaC5pbg=='), pass: atob('dlREeDVEbUV0QTVKaDRGdQ=='), name: 'Priyanka Singh' },
+  { email: atob('YXpoYXJ1bC5pc2xhbUBob3VzZW9mZWR0ZWNoLmlu'),     pass: atob('LksxWFVHNXRoR0R0WDk5NA=='), name: 'Azharul Islam' },
+  { email: atob('YWJoaXVkYXkuYmFnaGVsQGhvdXNlb2ZlZHRlY2guaW4='),  pass: atob('VFlPNV5vVVZ4YVBdZVt5ag=='), name: 'Abhiuday Baghel' },
+  { email: atob('YXJjaGFuYS50cmlwYXRoaUBob3VzZW9mZWR0ZWNoLmlu'),  pass: atob('WmNLN2NUYWM2UzZhTFg2Rw=='), name: 'Archana Tripathi' }
+];
+var EP = atob('ZW1wbG95ZWUxMjM=');
+
+var cu = null, cMonth = null, cWeek = null, cEmp = null, viewOnly = false;
+
+// ── KPI Functions ─────────────────────────────────────────────
 function toggleKPI() {
   var btn = document.getElementById('kpi-toggle-btn');
   var body = document.getElementById('kpi-body');
@@ -579,15 +915,10 @@ function buildKPITable(savedKPI, readOnly) {
       if(val !== '' && kpi.targetNum !== null) {
         var num = parseFloat(val);
         if(!isNaN(num)) {
-          // For AHT lower is better, for reopen 0 is target
           var met = (kpi.key==='aht') ? num<=kpi.targetNum : (kpi.key==='reopen') ? num===0 : num>=kpi.targetNum;
-          statusHtml = met
-            ? '<span class="kpi-status met">✓ Met</span>'
-            : '<span class="kpi-status notmet">✗ Below</span>';
+          statusHtml = met ? '<span class="kpi-status met">✓ Met</span>' : '<span class="kpi-status notmet">✗ Below</span>';
         }
-      } else if(val !== '') {
-        statusHtml = '<span class="kpi-status na">Recorded</span>';
-      }
+      } else if(val !== '') { statusHtml = '<span class="kpi-status na">Recorded</span>'; }
       var tr = document.createElement('tr');
       tr.innerHTML = '<td><div class="kpi-name">'+kpi.name+'</div><div class="kpi-desc">'+kpi.desc+'</div><div class="kpi-target">Target: '+kpi.target+'</div></td>'
         +'<td><div class="kpi-input-wrap">'
@@ -604,7 +935,6 @@ function buildKPITable(savedKPI, readOnly) {
 
 function updateKPI(key, val) {
   curKPI[key] = val !== '' ? parseFloat(val) : '';
-  // Update status indicator live
   var kpi = null;
   for(var i=0;i<KPI_DEFS.length;i++) if(KPI_DEFS[i].key===key) { kpi=KPI_DEFS[i]; break; }
   if(!kpi) return;
@@ -612,50 +942,15 @@ function updateKPI(key, val) {
   if(statusEl && val!=='' && kpi.targetNum!==null) {
     var num = parseFloat(val);
     var met = (kpi.key==='aht') ? num<=kpi.targetNum : (kpi.key==='reopen') ? num===0 : num>=kpi.targetNum;
-    statusEl.innerHTML = met
-      ? '<span class="kpi-status met">✓ Met</span>'
-      : '<span class="kpi-status notmet">✗ Below</span>';
-  } else if(statusEl) {
-    statusEl.innerHTML = val!=='' ? '<span class="kpi-status na">Recorded</span>' : '';
-  }
-  // Update filled count
+    statusEl.innerHTML = met ? '<span class="kpi-status met">✓ Met</span>' : '<span class="kpi-status notmet">✗ Below</span>';
+  } else if(statusEl) { statusEl.innerHTML = val!=='' ? '<span class="kpi-status na">Recorded</span>' : ''; }
   var filled=0;
   for(var i=0;i<KPI_DEFS.length;i++) if(curKPI[KPI_DEFS[i].key]!==undefined && curKPI[KPI_DEFS[i].key]!=='') filled++;
   var countEl=document.getElementById('kpi-filled-count');
   if(countEl) countEl.textContent='('+filled+' / '+KPI_DEFS.length+' filled)';
 }
 
-var CRITERIA = [
-  'Attendance / Availability',
-  'Professionalism / Behavior',
-  'Support Resolution Rate + FCR',
-  'Ownership',
-  'Quality & CSAT',
-  'Proactiveness'
-];
-
-// Admin credentials — encoded
-var ADMINS = [
-  { email: atob('cHJpeWFua2Euc2luZ2hAaG91c2VvZmVkdGVjaC5pbg=='), pass: atob('dlREeDVEbUV0QTVKaDRGdQ=='), name: 'Priyanka Singh' },
-  { email: atob('YXpoYXJ1bC5pc2xhbUBob3VzZW9mZWR0ZWNoLmlu'),     pass: atob('LksxWFVHNXRoR0R0WDk5NA=='), name: 'Azharul Islam' },
-  { email: atob('YWJoaXVkYXkuYmFnaGVsQGhvdXNlb2ZlZHRlY2guaW4='),  pass: atob('VFlPNV5vVVZ4YVBdZVt5ag=='), name: 'Abhiuday Baghel' },
-  { email: atob('YXJjaGFuYS50cmlwYXRoaUBob3VzZW9mZWR0ZWNoLmlu'),  pass: atob('WmNLN2NUYWM2UzZhTFg2Rw=='), name: 'Archana Tripathi' }
-];
-var EP = atob('ZW1wbG95ZWUxMjM=');
-
-var cu = null, cMonth = null, cWeek = null, cEmp = null, viewOnly = false;
-
-// STORAGE
-function lsGet(k) { try { var v=localStorage.getItem(k); return v!==null?JSON.parse(v):null; } catch(e){return null;} }
-function lsSet(k,v) { try { localStorage.setItem(k,JSON.stringify(v)); } catch(e){} }
-function getMap() { return lsGet('access_map') || {}; }
-function setMap(m) { lsSet('access_map',m); }
-function getRating(mo,w,e) { return lsGet('r26_'+mo+'_w'+w+'_'+e); }
-function setRating(mo,w,e,d) { lsSet('r26_'+mo+'_w'+w+'_'+e,d); }
-function cntRatings(mo,w) { var c=0; for(var i=0;i<EMPS.length;i++) if(getRating(mo,w,EMPS[i])) c++; return c; }
-function cntMonth(mo) { var t=0; for(var w=1;w<=4;w++) t+=cntRatings(mo,w); return t; }
-
-// UTILS
+// ── Utils ─────────────────────────────────────────────────────
 function initials(n) { var p=n.trim().split(/\s+/); var r=''; for(var i=0;i<Math.min(2,p.length);i++) r+=p[i][0]; return r.toUpperCase(); }
 function showToast(msg,type) {
   var t=document.getElementById('toast');
@@ -664,270 +959,223 @@ function showToast(msg,type) {
 }
 function showPage(id) { var ps=document.querySelectorAll('.page'); for(var i=0;i<ps.length;i++) ps[i].classList.remove('active'); document.getElementById(id).classList.add('active'); }
 
-// LOGIN
+// ── Login ─────────────────────────────────────────────────────
 function doLogin() {
   var emailEl = document.getElementById('lemail');
-  var passEl = document.getElementById('lpass');
-  var errEl = document.getElementById('lerr');
-
-  if(!emailEl || !passEl) { alert('Form error - please refresh the page'); return; }
-
+  var passEl  = document.getElementById('lpass');
+  var errEl   = document.getElementById('lerr');
+  var btn     = document.getElementById('login-btn');
+  if(!emailEl||!passEl) return;
   var email = emailEl.value.trim().toLowerCase();
-  var pass = passEl.value.trim();
-
+  var pass  = passEl.value.trim();
   errEl.style.display = 'none';
+  if(!email||!pass) { errEl.textContent='Please enter your email and password.'; errEl.style.display='block'; return; }
 
-  if(!email || !pass) {
-    errEl.textContent = 'Please enter your email and password.';
-    errEl.style.display = 'block';
-    return;
-  }
-
-  for(var ai=0; ai<ADMINS.length; ai++) {
-    if(email === ADMINS[ai].email.toLowerCase() && pass === ADMINS[ai].pass) {
-      cu = { email:email, role:'manager', empName:null, adminName: ADMINS[ai].name };
-      startApp();
-      return;
+  for(var ai=0;ai<ADMINS.length;ai++) {
+    if(email===ADMINS[ai].email.toLowerCase() && pass===ADMINS[ai].pass) {
+      cu = { email:email, role:'manager', empName:null, adminName:ADMINS[ai].name };
+      startApp(); return;
     }
   }
-
-  var map = getMap();
-  var keys = Object.keys(map);
+  var map = getMap(), keys = Object.keys(map);
   for(var i=0;i<keys.length;i++) {
-    var n = keys[i];
-    var rec = map[n];
-    // Handle both old string format and new {email,pass} object format
-    var empEmail = '';
-    var empPass = '';
-    if(typeof rec === 'string') {
-      empEmail = rec.toLowerCase().trim();
-      empPass = EP; // fallback to default
-    } else if(rec && typeof rec === 'object') {
-      empEmail = (rec.email || '').toLowerCase().trim();
-      empPass = (rec.pass || '').trim();
-    }
-    if(empEmail && empEmail === email && empPass === pass) {
+    var n=keys[i], rec=map[n];
+    var empEmail='', empPass='';
+    if(typeof rec==='string') { empEmail=rec.toLowerCase().trim(); empPass=EP; }
+    else if(rec&&typeof rec==='object') { empEmail=(rec.email||'').toLowerCase().trim(); empPass=(rec.pass||'').trim(); }
+    if(empEmail && empEmail===email && empPass===pass) {
       cu = { email:email, role:'viewer', empName:n };
-      startApp();
-      return;
+      startApp(); return;
     }
   }
-
-  errEl.textContent = 'Invalid email or password. Please try again.';
-  errEl.style.display = 'block';
+  errEl.textContent='Invalid email or password. Please try again.';
+  errEl.style.display='block';
 }
 
 function startApp() {
-  EMPS = getEmps(); // always load fresh list
-  document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-  // Always hide access management for viewers
-  document.getElementById('access-sec').style.display = 'none';
-  document.getElementById('ratings-sec').style.display = 'block';
+  EMPS = getEmps();
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('access-sec').style.display='none';
+  document.getElementById('ratings-sec').style.display='block';
   setupHeader();
-  if(cu.role === 'manager') {
-    document.getElementById('htabs-manager').style.display = 'flex';
-    document.getElementById('htabs-viewer').style.display = 'none';
+  if(cu.role==='manager') {
+    document.getElementById('htabs-manager').style.display='flex';
+    document.getElementById('htabs-viewer').style.display='none';
   } else {
-    document.getElementById('htabs-manager').style.display = 'none';
-    document.getElementById('htabs-viewer').style.display = 'flex';
+    document.getElementById('htabs-manager').style.display='none';
+    document.getElementById('htabs-viewer').style.display='flex';
   }
   cMonth=null; cWeek=null; cEmp=null;
-  initMonths();
-  showPage('pg-months');
-  updateBC();
+  initMonths(); showPage('pg-months'); updateBC();
 }
 
 function doLogout() {
   cu=null; cMonth=null; cWeek=null; cEmp=null;
-  document.getElementById('login-screen').style.display = 'flex';
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('lemail').value = '';
-  document.getElementById('lpass').value = '';
-  document.getElementById('lerr').style.display = 'none';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('app').style.display='none';
+  document.getElementById('lemail').value='';
+  document.getElementById('lpass').value='';
+  document.getElementById('lerr').style.display='none';
 }
 
 function setupHeader() {
   var name = cu.role==='manager' ? (cu.adminName||'Admin') : (cu.empName||cu.email);
-  var av = cu.role==='manager' ? initials(name) : initials(name);
-  document.getElementById('uav').textContent = av;
+  document.getElementById('uav').textContent = initials(name);
   document.getElementById('uname').textContent = name;
   document.getElementById('urole').textContent = cu.role==='manager' ? 'Manager' : 'Employee';
   var b = document.getElementById('rbadge');
   b.textContent = cu.role==='manager' ? 'Manager' : 'View Only';
-  b.className = 'rbadge ' + (cu.role==='manager' ? 'manager' : 'viewer');
+  b.className = 'rbadge '+(cu.role==='manager'?'manager':'viewer');
 }
 
-// TABS
+// ── Tab Switching ─────────────────────────────────────────────
 function switchTab(tab) {
-  // Block restricted tabs from viewers
   var managerOnly = ['access','export','graphs'];
-  if(cu.role !== 'manager' && managerOnly.indexOf(tab) !== -1) return;
-
-  // Update active state on whichever tab bar is visible
+  if(cu.role!=='manager' && managerOnly.indexOf(tab)!==-1) return;
   var tabs = document.querySelectorAll('.htab');
-  var tabNames = cu.role === 'manager'
+  var tabNames = cu.role==='manager'
     ? ['ratings','graphs','rankings','toppers','export','access']
     : ['ratings','rankings','toppers'];
   for(var ti=0;ti<tabs.length;ti++) tabs[ti].classList.toggle('active', tab===tabNames[ti]);
-
-  // Hide all sections
   var secs = ['ratings-sec','graphs-sec','rankings-sec','toppers-sec','export-sec','access-sec'];
   for(var si=0;si<secs.length;si++) document.getElementById(secs[si]).style.display='none';
-
   if(tab==='access') {
-    document.getElementById('access-sec').style.display = 'block';
+    document.getElementById('access-sec').style.display='block';
     renderAccessTable();
-    document.getElementById('bc').innerHTML = '<span class="cur">Access Management</span>';
+    document.getElementById('bc').innerHTML='<span class="cur">Access Management</span>';
   } else if(tab==='graphs') {
-    document.getElementById('graphs-sec').style.display = 'block';
-    document.getElementById('bc').innerHTML = '<span class="cur">Graphs</span>';
+    document.getElementById('graphs-sec').style.display='block';
+    document.getElementById('bc').innerHTML='<span class="cur">Graphs</span>';
     initGraphSelects(); renderGraph(); renderTeamChart();
   } else if(tab==='rankings') {
-    document.getElementById('rankings-sec').style.display = 'block';
-    document.getElementById('bc').innerHTML = '<span class="cur">Rankings</span>';
+    document.getElementById('rankings-sec').style.display='block';
+    document.getElementById('bc').innerHTML='<span class="cur">Rankings</span>';
     initRankMonth(); renderRankings();
   } else if(tab==='toppers') {
-    document.getElementById('toppers-sec').style.display = 'block';
-    document.getElementById('bc').innerHTML = '<span class="cur">Top Performers</span>';
+    document.getElementById('toppers-sec').style.display='block';
+    document.getElementById('bc').innerHTML='<span class="cur">Top Performers</span>';
     renderToppers();
   } else if(tab==='export') {
-    document.getElementById('export-sec').style.display = 'block';
-    document.getElementById('bc').innerHTML = '<span class="cur">Export CSV</span>';
+    document.getElementById('export-sec').style.display='block';
+    document.getElementById('bc').innerHTML='<span class="cur">Export CSV</span>';
     initExportSelects();
   } else {
-    // ratings
-    document.getElementById('ratings-sec').style.display = 'block';
+    document.getElementById('ratings-sec').style.display='block';
     cMonth=null; cWeek=null; cEmp=null;
     initMonths(); showPage('pg-months'); updateBC();
   }
 }
 
-// BREADCRUMB
+// ── Breadcrumb ────────────────────────────────────────────────
 function updateBC() {
-  var bc = document.getElementById('bc');
-  var h = '<span onclick="goHome()">Home</span>';
-  if(cMonth!==null) h += '<span class="sep"> › </span><span onclick="goToMonth()">'+MONTHS[cMonth]+'</span>';
-  if(cWeek!==null) h += '<span class="sep"> › </span><span onclick="goToWeek()">Week '+cWeek+'</span>';
-  if(cEmp!==null) h += '<span class="sep"> › </span><span class="cur">'+cEmp+'</span>';
-  bc.innerHTML = h;
+  var bc=document.getElementById('bc');
+  var h='<span onclick="goHome()">Home</span>';
+  if(cMonth!==null) h+='<span class="sep"> › </span><span onclick="goToMonth()">'+MONTHS[cMonth]+'</span>';
+  if(cWeek!==null)  h+='<span class="sep"> › </span><span onclick="goToWeek()">Week '+cWeek+'</span>';
+  if(cEmp!==null)   h+='<span class="sep"> › </span><span class="cur">'+cEmp+'</span>';
+  bc.innerHTML=h;
 }
-
-function goHome() { cMonth=null; cWeek=null; cEmp=null; initMonths(); showPage('pg-months'); updateBC(); }
+function goHome()    { cMonth=null; cWeek=null; cEmp=null; initMonths(); showPage('pg-months'); updateBC(); }
 function goToMonth() { cWeek=null; cEmp=null; document.getElementById('wtitle').textContent=MONTHS[cMonth]+' 2026'; showPage('pg-weeks'); updateBC(); }
-function goToWeek() { cEmp=null; initEmpGrid(); document.getElementById('etitle').textContent='Week '+cWeek+' — '+MONTHS[cMonth]+' 2026'; showPage('pg-emps'); updateBC(); }
+function goToWeek()  { cEmp=null; initEmpGrid(); document.getElementById('etitle').textContent='Week '+cWeek+' — '+MONTHS[cMonth]+' 2026'; showPage('pg-emps'); updateBC(); }
 
-// MONTHS
+// ── Month & Week Selectors ────────────────────────────────────
 function initMonths() {
-  EMPS = getEmps();
-  var vw = document.getElementById('vwelcome');
-  var mt = document.getElementById('months-title');
+  EMPS=getEmps();
+  var vw=document.getElementById('vwelcome');
+  var mt=document.getElementById('months-title');
   if(cu.role==='viewer') {
-    mt.textContent = 'My Performance Ratings';
-    vw.style.display = 'flex';
-    vw.innerHTML = '<div style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,var(--accent3),var(--accent));display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-size:18px;font-weight:800;flex-shrink:0">'+initials(cu.empName)+'</div><div><div style="font-family:Syne,sans-serif;font-size:18px;font-weight:800">Welcome, '+cu.empName+'!</div><div style="font-size:13px;color:var(--muted);margin-top:4px">Select a month to view your weekly ratings.</div></div>';
-  } else {
-    mt.textContent = 'Select Month';
-    vw.style.display = 'none';
-  }
-  var g = document.getElementById('mgrid'); g.innerHTML='';
+    mt.textContent='My Performance Ratings';
+    vw.style.display='flex';
+    vw.innerHTML='<div style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,var(--accent3),var(--accent));display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-size:18px;font-weight:800;flex-shrink:0">'+initials(cu.empName)+'</div><div><div style="font-family:Syne,sans-serif;font-size:18px;font-weight:800">Welcome, '+cu.empName+'!</div><div style="font-size:13px;color:var(--muted);margin-top:4px">Select a month to view your weekly ratings.</div></div>';
+  } else { mt.textContent='Select Month'; vw.style.display='none'; }
+  var g=document.getElementById('mgrid'); g.innerHTML='';
   for(var i=0;i<MONTHS.length;i++) {
     (function(idx){
-      var c = cntMonth(idx);
-      var d = document.createElement('div'); d.className='mbtn';
+      var c=cntMonth(idx);
+      var d=document.createElement('div'); d.className='mbtn';
       d.innerHTML='<div class="mn">'+MONTHS[idx]+'</div><div class="my">2026</div>'+(c>0?'<div class="mc">'+c+' rated</div>':'');
-      d.onclick = function(){ selMonth(idx); };
+      d.onclick=function(){ selMonth(idx); };
       g.appendChild(d);
     })(i);
   }
 }
-
 function selMonth(i) { cMonth=i; document.getElementById('wtitle').textContent=MONTHS[i]+' 2026'; updateBC(); showPage('pg-weeks'); }
-function selWeek(w) { cWeek=w; initEmpGrid(); document.getElementById('etitle').textContent='Week '+w+' — '+MONTHS[cMonth]+' 2026'; updateBC(); showPage('pg-emps'); }
+function selWeek(w)  { cWeek=w; initEmpGrid(); document.getElementById('etitle').textContent='Week '+w+' — '+MONTHS[cMonth]+' 2026'; updateBC(); showPage('pg-emps'); }
 
-// EMPLOYEES
+// ── Employee Grid ─────────────────────────────────────────────
 function initEmpGrid() {
-  EMPS = getEmps();
-  var g = document.getElementById('egrid'); g.innerHTML='';
-  var isV = cu.role==='viewer';
-  document.getElementById('esub').textContent = isV ? 'Viewing your rating' : 'Select an employee to rate';
-  var list = isV ? EMPS.filter(function(e){return e===cu.empName;}) : EMPS;
+  EMPS=getEmps();
+  var g=document.getElementById('egrid'); g.innerHTML='';
+  var isV=cu.role==='viewer';
+  document.getElementById('esub').textContent=isV?'Viewing your rating':'Select an employee to rate';
+  var list=isV?EMPS.filter(function(e){return e===cu.empName;}):EMPS;
   if(!list.length) { g.innerHTML='<div class="empty">No employees visible for your account.</div>'; return; }
   for(var i=0;i<list.length;i++) {
     (function(emp){
-      var rated = getRating(cMonth,cWeek,emp)!==null;
-      var idx = EMPS.indexOf(emp);
-      var d = document.createElement('div'); d.className='ebtn';
+      var rated=getRating(cMonth,cWeek,emp)!==null;
+      var idx=EMPS.indexOf(emp);
+      var d=document.createElement('div'); d.className='ebtn';
       d.innerHTML='<div class="eav">'+initials(emp)+'</div><div><div class="ename">'+emp+'</div><div class="enum">#'+String(idx+1).padStart(2,'0')+'</div></div>'+(rated?'<div class="edot"></div>':'');
-      d.onclick = function(){ selEmp(emp); };
+      d.onclick=function(){ selEmp(emp); };
       g.appendChild(d);
     })(list[i]);
   }
 }
 
-// RATING FORM
-function selEmp(emp) {
-  cEmp=emp; viewOnly=(cu.role==='viewer'); updateBC();
-  buildForm(emp); showPage('pg-rating');
-}
-
+// ── Rating Form ───────────────────────────────────────────────
+function selEmp(emp) { cEmp=emp; viewOnly=(cu.role==='viewer'); updateBC(); buildForm(emp); showPage('pg-rating'); }
 var curRatings = {};
 
 function buildForm(emp) {
-  document.getElementById('fav').textContent = initials(emp);
-  document.getElementById('fname').textContent = emp;
-  document.getElementById('fctx').textContent = 'Week '+cWeek+' — '+MONTHS[cMonth]+' 2026';
-  var saved = getRating(cMonth,cWeek,emp);
-  curRatings = {};
-  for(var i=0;i<CRITERIA.length;i++) curRatings[CRITERIA[i]] = saved ? (saved.criteria[CRITERIA[i]]||0) : 0;
-  document.getElementById('cfield').value = saved ? (saved.comment||'') : '';
-  document.getElementById('cfield').readOnly = viewOnly;
-  document.getElementById('vobanner').style.display = viewOnly ? 'block' : 'none';
-  document.getElementById('save-btn').style.display = viewOnly ? 'none' : 'block';
-  // Build KPI table
-  buildKPITable(saved ? (saved.kpi||{}) : {}, viewOnly);
-  // Reset KPI toggle state
-  var kpiBtn = document.getElementById('kpi-toggle-btn');
-  var kpiBody = document.getElementById('kpi-body');
+  document.getElementById('fav').textContent=initials(emp);
+  document.getElementById('fname').textContent=emp;
+  document.getElementById('fctx').textContent='Week '+cWeek+' — '+MONTHS[cMonth]+' 2026';
+  var saved=getRating(cMonth,cWeek,emp);
+  curRatings={};
+  for(var i=0;i<CRITERIA.length;i++) curRatings[CRITERIA[i]]=saved?(saved.criteria[CRITERIA[i]]||0):0;
+  document.getElementById('cfield').value=saved?(saved.comment||''):'';
+  document.getElementById('cfield').readOnly=viewOnly;
+  document.getElementById('vobanner').style.display=viewOnly?'block':'none';
+  document.getElementById('save-btn').style.display=viewOnly?'none':'block';
+  buildKPITable(saved?(saved.kpi||{}):null, viewOnly);
+  var kpiBtn=document.getElementById('kpi-toggle-btn');
+  var kpiBody=document.getElementById('kpi-body');
   if(kpiBtn) kpiBtn.classList.remove('open');
   if(kpiBody) kpiBody.classList.remove('open');
-  var cl = document.getElementById('clist'); cl.innerHTML='';
+  var cl=document.getElementById('clist'); cl.innerHTML='';
   for(var j=0;j<CRITERIA.length;j++) {
     (function(crit){
-      var row = document.createElement('div'); row.className='crow';
-      var sid = 'st_'+crit.replace(/[^a-z0-9]/gi,'_');
+      var row=document.createElement('div'); row.className='crow';
+      var sid='st_'+crit.replace(/[^a-z0-9]/gi,'_');
       row.innerHTML='<div class="clabel">'+crit+'</div><div class="stars" id="'+sid+'"></div>';
       cl.appendChild(row);
-      var sd = row.querySelector('.stars');
+      var sd=row.querySelector('.stars');
       for(var s=1;s<=5;s++) {
         (function(val){
-          var st = document.createElement('div');
-          st.className = 'star'+(curRatings[crit]>=val?' on':'')+(viewOnly?' ro':'');
-          st.textContent = val;
-          if(!viewOnly) st.onclick = (function(c,v,sd2){ return function(){ setStars(c,v,sd2); }; })(crit,val,sd);
+          var st=document.createElement('div');
+          st.className='star'+(curRatings[crit]>=val?' on':'')+(viewOnly?' ro':'');
+          st.textContent=val;
+          if(!viewOnly) st.onclick=(function(c,v,sd2){ return function(){ setStars(c,v,sd2); }; })(crit,val,sd);
           sd.appendChild(st);
         })(s);
       }
     })(CRITERIA[j]);
   }
-  var ar = document.createElement('div'); ar.className='crow';
+  var ar=document.createElement('div'); ar.className='crow';
   ar.innerHTML='<div class="clabel avg">⌀ Average Score</div><div class="avgpill" id="avgpill">'+calcAvg()+'</div>';
   cl.appendChild(ar);
 
-  // Show audit trail and undo/delete buttons
-  var undoBtn = document.getElementById('undo-btn');
-  var deleteBtn = document.getElementById('delete-btn');
-  var auditDiv = document.getElementById('audit-trail');
+  var undoBtn=document.getElementById('undo-btn');
+  var deleteBtn=document.getElementById('delete-btn');
+  var auditDiv=document.getElementById('audit-trail');
   if(!viewOnly && saved) {
     if(deleteBtn) deleteBtn.style.display='block';
-    // Audit trail
-    var auditHtml = '<div style="font-weight:600;color:var(--text);margin-bottom:8px;">📝 Edit History</div>';
-    var savedBy = saved.savedBy || 'Unknown';
-    var savedAt = saved.savedAt ? new Date(saved.savedAt).toLocaleString() : '—';
-    auditHtml += '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)"><span style="background:rgba(56,239,125,0.15);color:var(--accent3);border-radius:20px;padding:2px 8px;font-size:11px;">Current</span><span style="color:var(--text)">Saved by <strong>'+savedBy+'</strong></span><span style="color:var(--muted);margin-left:auto">'+savedAt+'</span></div>';
-    if(saved.undoneBy) {
-      auditHtml += '<div style="padding:5px 0;color:var(--accent4);font-size:11px;">↩ Undone by '+saved.undoneBy+' at '+new Date(saved.undoneAt).toLocaleString()+'</div>';
-    }
+    var auditHtml='<div style="font-weight:600;color:var(--text);margin-bottom:8px;">📝 Edit History</div>';
+    var savedBy=saved.savedBy||'Unknown';
+    var savedAt=saved.savedAt?new Date(saved.savedAt).toLocaleString():'—';
+    auditHtml+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)"><span style="background:rgba(56,239,125,0.15);color:var(--accent3);border-radius:20px;padding:2px 8px;font-size:11px;">Current</span><span style="color:var(--text)">Saved by <strong>'+savedBy+'</strong></span><span style="color:var(--muted);margin-left:auto">'+savedAt+'</span></div>';
     if(saved.history && saved.history.length>0) {
       if(undoBtn) undoBtn.style.display='block';
       for(var hi=saved.history.length-1;hi>=0;hi--) {
@@ -935,9 +1183,7 @@ function buildForm(emp) {
         var hby=h.savedBy||'Unknown'; var hat=h.savedAt?new Date(h.savedAt).toLocaleString():'—';
         auditHtml+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(38,38,74,0.4)"><span style="background:rgba(104,104,160,0.15);color:var(--muted);border-radius:20px;padding:2px 8px;font-size:11px;">v'+(hi+1)+'</span><span style="color:var(--muted)">'+hby+'</span><span style="color:var(--muted);margin-left:auto;font-size:11px">'+hat+'</span></div>';
       }
-    } else {
-      if(undoBtn) undoBtn.style.display='none';
-    }
+    } else { if(undoBtn) undoBtn.style.display='none'; }
     if(auditDiv){ auditDiv.style.display='block'; auditDiv.innerHTML=auditHtml; }
   } else {
     if(undoBtn) undoBtn.style.display='none';
@@ -952,47 +1198,34 @@ function setStars(crit,val,sd) {
   for(var i=0;i<stars.length;i++) stars[i].classList.toggle('on',i<val);
   document.getElementById('avgpill').textContent=calcAvg();
 }
-
 function calcAvg() {
-  var total=0, count=0;
-  for(var i=0;i<CRITERIA.length;i++) { total+=(curRatings[CRITERIA[i]]||0); count++; }
-  var filled=0;
-  for(var i=0;i<CRITERIA.length;i++) if(curRatings[CRITERIA[i]]>0) filled++;
+  var total=0,count=0,filled=0;
+  for(var i=0;i<CRITERIA.length;i++) { total+=(curRatings[CRITERIA[i]]||0); count++; if(curRatings[CRITERIA[i]]>0) filled++; }
   if(!filled) return '—';
   return (total/count).toFixed(2);
 }
 
 function saveRating() {
   if(cu.role!=='manager') return;
-  var existing = getRating(cMonth,cWeek,cEmp);
-  var history = existing ? (existing.history||[]) : [];
-  // Push current state to history before overwriting
-  if(existing) {
-    history.push({ criteria: existing.criteria, avg: existing.avg, comment: existing.comment, kpi: existing.kpi||{}, savedAt: existing.savedAt, savedBy: existing.savedBy||'Unknown' });
-  }
-  var d = {
-    criteria:{}, avg:calcAvg(),
-    comment:document.getElementById('cfield').value,
-    kpi: curKPI,
-    savedAt: new Date().toISOString(),
-    savedBy: cu.adminName || cu.email,
-    history: history
-  };
+  var saveBtn=document.getElementById('save-btn');
+  saveBtn.disabled=true; saveBtn.textContent='💾 Saving...';
+  var existing=getRating(cMonth,cWeek,cEmp);
+  var history=existing?(existing.history||[]):[];
+  if(existing) history.push({ criteria:existing.criteria, avg:existing.avg, comment:existing.comment, kpi:existing.kpi||{}, savedAt:existing.savedAt, savedBy:existing.savedBy||'Unknown' });
+  var d={ criteria:{}, avg:calcAvg(), comment:document.getElementById('cfield').value, kpi:curKPI, savedAt:new Date().toISOString(), savedBy:cu.adminName||cu.email, history:history };
   for(var i=0;i<CRITERIA.length;i++) d.criteria[CRITERIA[i]]=curRatings[CRITERIA[i]]||0;
   setRating(cMonth,cWeek,cEmp,d);
   showToast('Rating saved by '+d.savedBy+' ✓','success');
-  setTimeout(function(){ initEmpGrid(); goToWeek(); },1400);
+  setTimeout(function(){ saveBtn.disabled=false; saveBtn.textContent='Save Rating ✓'; initEmpGrid(); goToWeek(); },1000);
 }
 
 function undoRating() {
   if(cu.role!=='manager') return;
-  var existing = getRating(cMonth,cWeek,cEmp);
-  if(!existing || !existing.history || existing.history.length===0) {
-    showToast('No previous version to undo to','error'); return;
-  }
-  var prev = existing.history[existing.history.length-1];
-  var newHistory = existing.history.slice(0,-1);
-  var d = { criteria: prev.criteria, avg: prev.avg, comment: prev.comment, kpi: prev.kpi||{}, savedAt: prev.savedAt, savedBy: prev.savedBy, history: newHistory, undoneBy: cu.adminName||cu.email, undoneAt: new Date().toISOString() };
+  var existing=getRating(cMonth,cWeek,cEmp);
+  if(!existing||!existing.history||existing.history.length===0) { showToast('No previous version to undo to','error'); return; }
+  var prev=existing.history[existing.history.length-1];
+  var newHistory=existing.history.slice(0,-1);
+  var d={ criteria:prev.criteria, avg:prev.avg, comment:prev.comment, kpi:prev.kpi||{}, savedAt:prev.savedAt, savedBy:prev.savedBy, history:newHistory, undoneBy:cu.adminName||cu.email, undoneAt:new Date().toISOString() };
   setRating(cMonth,cWeek,cEmp,d);
   showToast('Rating restored to previous version ↩','info');
   setTimeout(function(){ buildForm(cEmp); },400);
@@ -1001,27 +1234,26 @@ function undoRating() {
 function deleteRating() {
   if(cu.role!=='manager') return;
   if(!confirm('Are you sure you want to delete this rating? This cannot be undone.')) return;
-  lsSet('r26_'+cMonth+'_w'+cWeek+'_'+cEmp, null);
-  try { localStorage.removeItem('r26_'+cMonth+'_w'+cWeek+'_'+cEmp); } catch(e){}
+  // ★ dbDelete removes from DB, localStorage, AND Google Sheets
+  dbDelete('r26_'+cMonth+'_w'+cWeek+'_'+cEmp);
   showToast('Rating deleted','info');
   setTimeout(function(){ initEmpGrid(); goToWeek(); },1000);
 }
 
-// MY RATINGS
+// ── My Ratings (Viewer) ───────────────────────────────────────
 function renderMyRatings() {
   var emp=cu.empName, el=document.getElementById('myratings-content');
   var html='<div style="display:flex;align-items:center;gap:16px;margin-bottom:24px"><div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--accent3),var(--accent));display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-size:20px;font-weight:800">'+initials(emp)+'</div><div><div style="font-family:Syne,sans-serif;font-size:20px;font-weight:800">'+emp+'</div><div style="font-size:13px;color:var(--muted);margin-top:3px">Your Performance Ratings — 2026</div></div></div>';
   var any=false;
   for(var mi=0;mi<MONTHS.length;mi++) {
-    var mhtml='', mhas=false;
+    var mhtml='',mhas=false;
     for(var w=1;w<=4;w++) {
       var r=getRating(mi,w,emp);
       if(r) {
         mhas=true; any=true;
         var rows='';
         for(var ci=0;ci<CRITERIA.length;ci++) {
-          var v=r.criteria[CRITERIA[ci]]||0;
-          var ss='';
+          var v=r.criteria[CRITERIA[ci]]||0, ss='';
           for(var s=1;s<=5;s++) ss+='<div class="rst'+(v>=s?' on':'')+'">'+s+'</div>';
           rows+='<div class="rrow"><span class="rrl">'+CRITERIA[ci]+'</span><div class="rrs">'+ss+'</div></div>';
         }
@@ -1035,369 +1267,211 @@ function renderMyRatings() {
   document.getElementById('bc').innerHTML='<span class="cur">My Ratings</span>';
 }
 
-// ACCESS MANAGEMENT
+// ── Access Management ─────────────────────────────────────────
 function addEmployee() {
-  var inp = document.getElementById('new-emp-name');
-  var name = inp.value.trim();
+  var inp=document.getElementById('new-emp-name');
+  var name=inp.value.trim();
   if(!name) { showToast('Please enter an employee name','error'); return; }
-  var list = getEmps();
-  // Check duplicate (case insensitive)
-  for(var i=0;i<list.length;i++) {
-    if(list[i].toLowerCase()===name.toLowerCase()) { showToast(name+' already exists in the list','error'); return; }
-  }
+  var list=getEmps();
+  for(var i=0;i<list.length;i++) { if(list[i].toLowerCase()===name.toLowerCase()) { showToast(name+' already exists','error'); return; } }
   list.push(name);
   saveEmps(list);
-  EMPS = list;
-  inp.value = '';
-  showToast(name+' added successfully ✓','success');
+  EMPS=list;
+  inp.value='';
+  showToast(name+' added ✓','success');
   renderAccessTable();
 }
 
 function deleteEmployee(emp) {
-  if(!confirm('Delete "'+emp+'" from the employee list?\n\nNote: Their ratings data will be preserved but they will be removed from all future rating lists and their login access will be revoked.')) return;
-  var list = getEmps();
-  list = list.filter(function(e){ return e!==emp; });
-  saveEmps(list);
-  EMPS = list;
-  // Also revoke their access
-  var map = getMap();
-  if(map[emp]) { delete map[emp]; setMap(map); }
-  showToast(emp+' removed from employee list','info');
-  renderAccessTable();
+  if(!confirm('Delete "'+emp+'" from the employee list?\n\nRatings data will be preserved but they will be removed from all future rating lists and login access will be revoked.')) return;
+  var list=getEmps(); list=list.filter(function(e){return e!==emp;}); saveEmps(list); EMPS=list;
+  var map=getMap(); if(map[emp]){ delete map[emp]; setMap(map); }
+  showToast(emp+' removed','info'); renderAccessTable();
 }
 
 function renderAccessTable() {
-  EMPS = getEmps();
-
-  // ---- Admin list ----
-  var al = document.getElementById('admin-list');
+  EMPS=getEmps();
+  var al=document.getElementById('admin-list');
   if(al) {
-    al.innerHTML = '';
-    for(var ai=0; ai<ADMINS.length; ai++) {
-      var isMe = ADMINS[ai].email.toLowerCase() === cu.email.toLowerCase();
-      var d = document.createElement('div');
-      d.style.cssText = 'display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid '+(isMe?'var(--accent)':'var(--border)')+';border-radius:12px;padding:10px 14px;';
-      d.innerHTML = '<div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-size:12px;font-weight:700;">'+initials(ADMINS[ai].name)+'</div>'
-        + '<div><div style="font-size:13px;font-weight:600;">'+ADMINS[ai].name+(isMe?' <span style="font-size:10px;background:rgba(124,111,255,0.2);color:var(--accent);border-radius:20px;padding:1px 6px;">You</span>':'')+'</div>'
-        + '<div style="font-size:11px;color:var(--muted);">'+ADMINS[ai].email+'</div></div>';
+    al.innerHTML='';
+    for(var ai=0;ai<ADMINS.length;ai++) {
+      var isMe=ADMINS[ai].email.toLowerCase()===cu.email.toLowerCase();
+      var d=document.createElement('div');
+      d.style.cssText='display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid '+(isMe?'var(--accent)':'var(--border)')+';border-radius:12px;padding:10px 14px;';
+      d.innerHTML='<div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-size:12px;font-weight:700;">'+initials(ADMINS[ai].name)+'</div>'
+        +'<div><div style="font-size:13px;font-weight:600;">'+ADMINS[ai].name+(isMe?' <span style="font-size:10px;background:rgba(124,111,255,0.2);color:var(--accent);border-radius:20px;padding:1px 6px;">You</span>':'')+'</div>'
+        +'<div style="font-size:11px;color:var(--muted);">'+ADMINS[ai].email+'</div></div>';
       al.appendChild(d);
     }
   }
-
-  // ---- Employee manage list ----
-  var eml = document.getElementById('emp-manage-list');
+  var eml=document.getElementById('emp-manage-list');
   if(eml) {
-    eml.innerHTML = '';
-    for(var i=0; i<EMPS.length; i++) {
-      (function(emp, idx) {
-        var d = document.createElement('div');
-        d.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;';
-        // Left side
-        var left = document.createElement('div');
-        left.style.cssText = 'display:flex;align-items:center;gap:10px;';
-        left.innerHTML = '<div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:Syne,sans-serif;flex-shrink:0;">'+initials(emp)+'</div>'
-          + '<div><div style="font-size:13px;font-weight:500;">'+emp+'</div><div style="font-size:11px;color:var(--muted);">#'+String(idx+1).padStart(2,'0')+'</div></div>';
-        // Remove button
-        var btn = document.createElement('button');
-        btn.textContent = '🗑 Remove';
-        btn.style.cssText = 'background:rgba(255,77,109,0.12);border:1px solid rgba(255,77,109,0.25);color:var(--danger);border-radius:7px;font-size:12px;font-weight:600;padding:5px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0;';
-        btn.onclick = (function(e){ return function(){ deleteEmployee(e); }; })(emp);
-        d.appendChild(left);
-        d.appendChild(btn);
-        eml.appendChild(d);
-      })(EMPS[i], i);
+    eml.innerHTML='';
+    for(var i=0;i<EMPS.length;i++) {
+      (function(emp,idx){
+        var d=document.createElement('div');
+        d.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;';
+        var left=document.createElement('div'); left.style.cssText='display:flex;align-items:center;gap:10px;';
+        left.innerHTML='<div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:Syne,sans-serif;flex-shrink:0;">'+initials(emp)+'</div>'
+          +'<div><div style="font-size:13px;font-weight:500;">'+emp+'</div><div style="font-size:11px;color:var(--muted);">#'+String(idx+1).padStart(2,'0')+'</div></div>';
+        var btn=document.createElement('button');
+        btn.textContent='🗑 Remove';
+        btn.style.cssText='background:rgba(255,77,109,0.12);border:1px solid rgba(255,77,109,0.25);color:var(--danger);border-radius:7px;font-size:12px;font-weight:600;padding:5px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0;';
+        btn.onclick=(function(e){ return function(){ deleteEmployee(e); }; })(emp);
+        d.appendChild(left); d.appendChild(btn); eml.appendChild(d);
+      })(EMPS[i],i);
     }
   }
-
-  // ---- Email assignments table ----
-  var map = getMap();
-  var tb = document.getElementById('atbody');
-  if(!tb) return;
-  tb.innerHTML = '';
-
-  for(var i=0; i<EMPS.length; i++) {
-    (function(emp, idx) {
-      var rec = map[emp] || null;
-      var email = rec ? (typeof rec==='string' ? rec : (rec.email||'')) : '';
-      var pass  = rec && typeof rec==='object' ? (rec.pass||'') : '';
-      var has = !!email;
-
-      var tr = document.createElement('tr');
-
-      // # cell
-      var td0 = document.createElement('td');
-      td0.style.color = 'var(--muted)';
-      td0.textContent = idx+1;
-
-      // Name cell
-      var td1 = document.createElement('td');
-      td1.innerHTML = '<div style="display:flex;align-items:center;gap:9px;">'
-        +'<div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;">'+initials(emp)+'</div>'
-        +'<span style="font-weight:500;">'+emp+'</span></div>';
-
-      // Status cell
-      var td2 = document.createElement('td');
-      td2.innerHTML = has
-        ? '<span class="tag-active">✓ Active</span>'
-        : '<span class="tag-none">○ Not assigned</span>';
-
-      // Email+Password cell
-      var td3 = document.createElement('td');
-      if(has) {
-        var wrap = document.createElement('div');
-        wrap.style.cssText = 'display:flex;flex-direction:column;gap:4px;';
-        var etag = document.createElement('span');
-        etag.className = 'etag';
-        etag.style.fontSize = '11px';
-        etag.textContent = '📧 ' + email;
-        var ptag = document.createElement('span');
-        ptag.className = 'etag';
-        ptag.style.cssText = 'font-size:11px;background:rgba(124,111,255,0.08);border-color:rgba(124,111,255,0.2);color:var(--accent);';
-        ptag.textContent = '🔑 ' + pass;
-        var editBtn = document.createElement('button');
-        editBtn.className = 'abtn';
-        editBtn.style.cssText = 'font-size:11px;padding:4px 10px;background:rgba(124,111,255,0.2);margin-top:2px;';
-        editBtn.textContent = '✏️ Edit';
-        editBtn.onclick = (function(e,i){ return function(){ updateEmp(e,i); }; })(emp,idx);
-        wrap.appendChild(etag); wrap.appendChild(ptag); wrap.appendChild(editBtn);
-        td3.appendChild(wrap);
-      } else {
-        var wrap = document.createElement('div');
-        wrap.className = 'einrow';
-        wrap.style.cssText = 'flex-direction:column;gap:6px;align-items:stretch;';
-        var einput = document.createElement('input');
-        einput.type = 'email'; einput.id = 'ei'+idx; einput.placeholder = 'Employee email address';
-        var pinput = document.createElement('input');
-        pinput.type = 'text'; pinput.id = 'pi'+idx; pinput.placeholder = 'Set a password for '+emp;
-        pinput.style.cssText = 'background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 11px;color:var(--text);font-family:DM Sans,sans-serif;font-size:12px;outline:none;width:100%;';
-        var abtn = document.createElement('button');
-        abtn.className = 'abtn'; abtn.textContent = 'Assign Access';
-        abtn.onclick = (function(e,i){ return function(){ assignEmp(e,i); }; })(emp,idx);
-        wrap.appendChild(einput); wrap.appendChild(pinput); wrap.appendChild(abtn);
-        td3.appendChild(wrap);
-      }
-
-      // Action cell
-      var td4 = document.createElement('td');
-      if(has) {
-        var rbtn = document.createElement('button');
-        rbtn.className = 'rbtn'; rbtn.textContent = 'Revoke';
-        rbtn.onclick = (function(e){ return function(){ revokeEmp(e); }; })(emp);
-        td4.appendChild(rbtn);
-      } else {
-        td4.innerHTML = '<span style="color:var(--muted);font-size:12px;">—</span>';
-      }
-
-      tr.appendChild(td0); tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3); tr.appendChild(td4);
-      tb.appendChild(tr);
-    })(EMPS[i], i);
-  }
-}
-
-function assignEmp(emp, idx) {
-  var el = document.getElementById('ei'+idx);
-  var pl = document.getElementById('pi'+idx);
-  if(!el||!pl) return;
-  var email = el.value.trim().toLowerCase();
-  var pass  = pl.value.trim();
-  if(!email){ showToast('Enter an email address','error'); return; }
-  if(!email.includes('@')){ showToast('Enter a valid email','error'); return; }
-  if(!pass){ showToast('Enter a password for '+emp,'error'); return; }
-  var adminEmails = ADMINS.map(function(a){ return a.email.toLowerCase(); });
-  if(adminEmails.indexOf(email) !== -1){ showToast('Cannot use an admin email for an employee','error'); return; }
-  var map = getMap(), keys = Object.keys(map);
-  for(var i=0;i<keys.length;i++){
-    var existing = map[keys[i]];
-    var existEmail = typeof existing==='string' ? existing : (existing&&existing.email ? existing.email : '');
-    if(existEmail.toLowerCase()===email && keys[i]!==emp){ showToast('Email already assigned to '+keys[i],'error'); return; }
-  }
-  map[emp] = { email:email, pass:pass };
-  setMap(map);
-  showToast('Access granted to '+emp+' ✓','success');
-  renderAccessTable();
-}
-
-function revokeEmp(emp) {
-  var map = getMap();
-  delete map[emp];
-  setMap(map);
-  showToast('Access revoked for '+emp,'info');
-  renderAccessTable();
-}
-
-function updateEmp(emp, idx) {
-  var map = getMap();
-  var rec = map[emp] || {};
-  var currentEmail = typeof rec==='string' ? rec : (rec.email||'');
-  var currentPass  = typeof rec==='string' ? '' : (rec.pass||'');
-  var newEmail = prompt('Update email for '+emp+':', currentEmail);
-  if(newEmail===null) return;
-  var newPass = prompt('Update password for '+emp+':', currentPass);
-  if(newPass===null) return;
-  newEmail = newEmail.trim().toLowerCase();
-  newPass  = newPass.trim();
-  if(!newEmail||!newEmail.includes('@')){ showToast('Invalid email','error'); return; }
-  if(!newPass){ showToast('Password cannot be empty','error'); return; }
-  map[emp] = { email:newEmail, pass:newPass };
-  setMap(map);
-  showToast('Credentials updated for '+emp+' ✓','success');
-  renderAccessTable();
-}
-
-
-// ===================== RANKINGS =====================
-function getMonthAvg(emp, monthIdx) {
-  var total=0, count=0;
-  for(var w=1;w<=4;w++) {
-    var r=getRating(monthIdx,w,emp);
-    if(r && r.avg && r.avg!=='—') { total+=parseFloat(r.avg); count++; }
-  }
-  return count>0 ? parseFloat((total/count).toFixed(3)) : null;
-}
-
-function getRankedList(monthIdx) {
-  EMPS = getEmps();
-  var list=[];
+  var map=getMap(), tb=document.getElementById('atbody');
+  if(!tb) return; tb.innerHTML='';
   for(var i=0;i<EMPS.length;i++) {
-    var avg = getMonthAvg(EMPS[i], monthIdx);
-    list.push({ name:EMPS[i], avg:avg });
+    (function(emp,idx){
+      var rec=map[emp]||null;
+      var email=rec?(typeof rec==='string'?rec:(rec.email||'')):'';
+      var pass=rec&&typeof rec==='object'?(rec.pass||''):'';
+      var has=!!email;
+      var tr=document.createElement('tr');
+      var td0=document.createElement('td'); td0.style.color='var(--muted)'; td0.textContent=idx+1;
+      var td1=document.createElement('td');
+      td1.innerHTML='<div style="display:flex;align-items:center;gap:9px;"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;">'+initials(emp)+'</div><span style="font-weight:500;">'+emp+'</span></div>';
+      var td2=document.createElement('td');
+      td2.innerHTML=has?'<span class="tag-active">✓ Active</span>':'<span class="tag-none">○ Not assigned</span>';
+      var td3=document.createElement('td');
+      if(has) {
+        var wrap=document.createElement('div'); wrap.style.cssText='display:flex;flex-direction:column;gap:4px;';
+        var etag=document.createElement('span'); etag.className='etag'; etag.style.fontSize='11px'; etag.textContent='📧 '+email;
+        var ptag=document.createElement('span'); ptag.className='etag'; ptag.style.cssText='font-size:11px;background:rgba(124,111,255,0.08);border-color:rgba(124,111,255,0.2);color:var(--accent);'; ptag.textContent='🔑 '+pass;
+        var editBtn=document.createElement('button'); editBtn.className='abtn'; editBtn.style.cssText='font-size:11px;padding:4px 10px;background:rgba(124,111,255,0.2);margin-top:2px;'; editBtn.textContent='✏️ Edit';
+        editBtn.onclick=(function(e,i){ return function(){ updateEmp(e,i); }; })(emp,idx);
+        wrap.appendChild(etag); wrap.appendChild(ptag); wrap.appendChild(editBtn); td3.appendChild(wrap);
+      } else {
+        var wrap=document.createElement('div'); wrap.className='einrow'; wrap.style.cssText='flex-direction:column;gap:6px;align-items:stretch;';
+        var einput=document.createElement('input'); einput.type='email'; einput.id='ei'+idx; einput.placeholder='Employee email address';
+        var pinput=document.createElement('input'); pinput.type='text'; pinput.id='pi'+idx; pinput.placeholder='Set a password for '+emp;
+        pinput.style.cssText='background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 11px;color:var(--text);font-family:DM Sans,sans-serif;font-size:12px;outline:none;width:100%;';
+        var abtn=document.createElement('button'); abtn.className='abtn'; abtn.textContent='Assign Access';
+        abtn.onclick=(function(e,i){ return function(){ assignEmp(e,i); }; })(emp,idx);
+        wrap.appendChild(einput); wrap.appendChild(pinput); wrap.appendChild(abtn); td3.appendChild(wrap);
+      }
+      var td4=document.createElement('td');
+      if(has){ var rbtn=document.createElement('button'); rbtn.className='rbtn'; rbtn.textContent='Revoke'; rbtn.onclick=(function(e){ return function(){ revokeEmp(e); }; })(emp); td4.appendChild(rbtn); }
+      else { td4.innerHTML='<span style="color:var(--muted);font-size:12px;">—</span>'; }
+      tr.appendChild(td0); tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3); tr.appendChild(td4); tb.appendChild(tr);
+    })(EMPS[i],i);
   }
-  list.sort(function(a,b){
-    if(a.avg===null && b.avg===null) return 0;
-    if(a.avg===null) return 1;
-    if(b.avg===null) return -1;
-    return b.avg - a.avg;
-  });
-  // assign ranks (ties get same rank)
+}
+
+function assignEmp(emp,idx) {
+  var el=document.getElementById('ei'+idx), pl=document.getElementById('pi'+idx);
+  if(!el||!pl) return;
+  var email=el.value.trim().toLowerCase(), pass=pl.value.trim();
+  if(!email) { showToast('Enter an email address','error'); return; }
+  if(!email.includes('@')) { showToast('Enter a valid email','error'); return; }
+  if(!pass) { showToast('Enter a password for '+emp,'error'); return; }
+  var adminEmails=ADMINS.map(function(a){return a.email.toLowerCase();});
+  if(adminEmails.indexOf(email)!==-1) { showToast('Cannot use an admin email for an employee','error'); return; }
+  var map=getMap(), keys=Object.keys(map);
+  for(var i=0;i<keys.length;i++){
+    var existing=map[keys[i]];
+    var existEmail=typeof existing==='string'?existing:(existing&&existing.email?existing.email:'');
+    if(existEmail.toLowerCase()===email && keys[i]!==emp) { showToast('Email already assigned to '+keys[i],'error'); return; }
+  }
+  map[emp]={ email:email, pass:pass }; setMap(map);
+  showToast('Access granted to '+emp+' ✓','success'); renderAccessTable();
+}
+
+function revokeEmp(emp) { var map=getMap(); delete map[emp]; setMap(map); showToast('Access revoked for '+emp,'info'); renderAccessTable(); }
+
+function updateEmp(emp,idx) {
+  var map=getMap(), rec=map[emp]||{};
+  var currentEmail=typeof rec==='string'?rec:(rec.email||'');
+  var currentPass=typeof rec==='string'?'':(rec.pass||'');
+  var newEmail=prompt('Update email for '+emp+':', currentEmail); if(newEmail===null) return;
+  var newPass=prompt('Update password for '+emp+':', currentPass); if(newPass===null) return;
+  newEmail=newEmail.trim().toLowerCase(); newPass=newPass.trim();
+  if(!newEmail||!newEmail.includes('@')) { showToast('Invalid email','error'); return; }
+  if(!newPass) { showToast('Password cannot be empty','error'); return; }
+  map[emp]={ email:newEmail, pass:newPass }; setMap(map);
+  showToast('Credentials updated for '+emp+' ✓','success'); renderAccessTable();
+}
+
+// ── Rankings ──────────────────────────────────────────────────
+function getMonthAvg(emp,monthIdx) {
+  var total=0,count=0;
+  for(var w=1;w<=4;w++) { var r=getRating(monthIdx,w,emp); if(r&&r.avg&&r.avg!=='—') { total+=parseFloat(r.avg); count++; } }
+  return count>0?parseFloat((total/count).toFixed(3)):null;
+}
+function getRankedList(monthIdx) {
+  EMPS=getEmps();
+  var list=[];
+  for(var i=0;i<EMPS.length;i++) list.push({ name:EMPS[i], avg:getMonthAvg(EMPS[i],monthIdx) });
+  list.sort(function(a,b){ if(a.avg===null&&b.avg===null) return 0; if(a.avg===null) return 1; if(b.avg===null) return -1; return b.avg-a.avg; });
   var rank=1;
   for(var i=0;i<list.length;i++) {
-    if(i>0 && list[i].avg!==null && list[i].avg===list[i-1].avg) {
-      list[i].rank = list[i-1].rank;
-    } else if(list[i].avg===null) {
-      list[i].rank = '—';
-    } else {
-      list[i].rank = rank;
-    }
+    if(i>0&&list[i].avg!==null&&list[i].avg===list[i-1].avg) list[i].rank=list[i-1].rank;
+    else if(list[i].avg===null) list[i].rank='—';
+    else list[i].rank=rank;
     rank++;
   }
   return list;
 }
-
 function initRankMonth() {
-  var sel = document.getElementById('rank-month');
-  if(!sel) return;
-  sel.innerHTML='';
-  for(var i=0;i<MONTHS.length;i++) {
-    var o=document.createElement('option'); o.value=i; o.textContent=MONTHS[i]+' 2026'; sel.appendChild(o);
-  }
+  var sel=document.getElementById('rank-month'); if(!sel) return; sel.innerHTML='';
+  for(var i=0;i<MONTHS.length;i++) { var o=document.createElement('option'); o.value=i; o.textContent=MONTHS[i]+' 2026'; sel.appendChild(o); }
 }
-
 function renderRankings() {
-  var mi = parseInt(document.getElementById('rank-month').value||0);
-  var list = getRankedList(mi);
-  var el = document.getElementById('rankings-content');
-  if(!el) return;
-
-  var medalColors = ['linear-gradient(135deg,#FFD700,#FFA500)','linear-gradient(135deg,#C0C0C0,#A0A0A0)','linear-gradient(135deg,#CD7F32,#8B4513)'];
-  var medals = ['🥇','🥈','🥉'];
-
-  var html = '<div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;">';
-  html += '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">'
-    +'<div style="font-family:Syne,sans-serif;font-size:16px;font-weight:700;">'+MONTHS[mi]+' 2026 Rankings</div>'
-    +'<div style="font-size:12px;color:var(--muted);">'+list.filter(function(l){return l.avg!==null;}).length+' rated employees</div>'
-    +'</div>';
-
-  // Top 3 highlight
-  var top3 = list.filter(function(l){return l.avg!==null;}).slice(0,3);
+  var mi=parseInt(document.getElementById('rank-month').value||0);
+  var list=getRankedList(mi), el=document.getElementById('rankings-content'); if(!el) return;
+  var medalColors=['linear-gradient(135deg,#FFD700,#FFA500)','linear-gradient(135deg,#C0C0C0,#A0A0A0)','linear-gradient(135deg,#CD7F32,#8B4513)'];
+  var medals=['🥇','🥈','🥉'];
+  var html='<div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;">';
+  html+='<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;"><div style="font-family:Syne,sans-serif;font-size:16px;font-weight:700;">'+MONTHS[mi]+' 2026 Rankings</div><div style="font-size:12px;color:var(--muted);">'+list.filter(function(l){return l.avg!==null;}).length+' rated employees</div></div>';
+  var top3=list.filter(function(l){return l.avg!==null;}).slice(0,3);
   if(top3.length>0) {
-    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:0;border-bottom:1px solid var(--border);">';
-    for(var i=0;i<top3.length;i++) {
-      html += '<div style="padding:20px;text-align:center;border-right:1px solid var(--border);background:rgba(124,111,255,0.03);">'
-        +'<div style="font-size:32px;margin-bottom:6px;">'+medals[i]+'</div>'
-        +'<div style="width:44px;height:44px;border-radius:50%;background:'+medalColors[i]+';display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-size:14px;font-weight:800;margin:0 auto 8px;">'+initials(top3[i].name)+'</div>'
-        +'<div style="font-family:Syne,sans-serif;font-size:13px;font-weight:700;">'+top3[i].name+'</div>'
-        +'<div style="font-size:20px;font-weight:800;color:var(--accent);font-family:Syne,sans-serif;margin-top:4px;">'+top3[i].avg.toFixed(2)+'</div>'
-        +'<div style="font-size:10px;color:var(--muted);">/ 5.00</div>'
-        +'</div>';
-    }
-    html += '</div>';
+    html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:0;border-bottom:1px solid var(--border);">';
+    for(var i=0;i<top3.length;i++) html+='<div style="padding:20px;text-align:center;border-right:1px solid var(--border);background:rgba(124,111,255,0.03);"><div style="font-size:32px;margin-bottom:6px;">'+medals[i]+'</div><div style="width:44px;height:44px;border-radius:50%;background:'+medalColors[i]+';display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-size:14px;font-weight:800;margin:0 auto 8px;">'+initials(top3[i].name)+'</div><div style="font-family:Syne,sans-serif;font-size:13px;font-weight:700;">'+top3[i].name+'</div><div style="font-size:20px;font-weight:800;color:var(--accent);font-family:Syne,sans-serif;margin-top:4px;">'+top3[i].avg.toFixed(2)+'</div><div style="font-size:10px;color:var(--muted);">/ 5.00</div></div>';
+    html+='</div>';
   }
-
-  // Full table
-  html += '<table style="width:100%;border-collapse:collapse;">';
-  html += '<thead><tr>'
-    +'<th style="text-align:center;padding:10px 16px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);width:60px;">Rank</th>'
-    +'<th style="text-align:left;padding:10px 16px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">Employee</th>'
-    +'<th style="text-align:center;padding:10px 16px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">W1</th>'
-    +'<th style="text-align:center;padding:10px 16px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">W2</th>'
-    +'<th style="text-align:center;padding:10px 16px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">W3</th>'
-    +'<th style="text-align:center;padding:10px 16px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">W4</th>'
-    +'<th style="text-align:center;padding:10px 16px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">Monthly Avg</th>'
-    +'</tr></thead><tbody>';
-
+  html+='<table style="width:100%;border-collapse:collapse;"><thead><tr><th style="text-align:center;padding:10px 16px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);width:60px;">Rank</th><th style="text-align:left;padding:10px 16px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">Employee</th><th style="text-align:center;padding:10px 16px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">W1</th><th style="text-align:center;padding:10px 16px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">W2</th><th style="text-align:center;padding:10px 16px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">W3</th><th style="text-align:center;padding:10px 16px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">W4</th><th style="text-align:center;padding:10px 16px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">Monthly Avg</th></tr></thead><tbody>';
   for(var i=0;i<list.length;i++) {
     var emp=list[i];
-    var rankDisp = emp.rank==='—' ? '<span style="color:var(--muted)">—</span>'
-      : emp.rank<=3 ? medals[emp.rank-1]
-      : '<span style="font-family:Syne,sans-serif;font-weight:700;color:'+(emp.rank<=10?'var(--accent)':'var(--muted)')+'">'+emp.rank+'</span>';
+    var rankDisp=emp.rank==='—'?'<span style="color:var(--muted)">—</span>':emp.rank<=3?medals[emp.rank-1]:'<span style="font-family:Syne,sans-serif;font-weight:700;color:'+(emp.rank<=10?'var(--accent)':'var(--muted)')+'">'+emp.rank+'</span>';
     var wAvgs='';
-    for(var w=1;w<=4;w++) {
-      var wr=getRating(mi,w,emp.name);
-      var wv=wr&&wr.avg&&wr.avg!=='—'?parseFloat(wr.avg).toFixed(2):'—';
-      wAvgs+='<td style="text-align:center;padding:10px 8px;font-size:13px;border-bottom:1px solid rgba(38,38,74,0.4);color:'+(wv!=='—'?'var(--text)':'var(--muted)')+';">'+wv+'</td>';
-    }
-    var avgDisp = emp.avg!==null
-      ? '<span style="font-family:Syne,sans-serif;font-weight:800;font-size:15px;color:'+(emp.avg>=4?'var(--accent3)':emp.avg>=3?'var(--accent)':'var(--accent2)')+'">'+emp.avg.toFixed(2)+'</span>'
-      : '<span style="color:var(--muted)">No data</span>';
-    html+='<tr style="'+(i<3&&emp.avg!==null?'background:rgba(124,111,255,0.04);':'')+'">'
-      +'<td style="text-align:center;padding:10px 16px;border-bottom:1px solid rgba(38,38,74,0.4);">'+rankDisp+'</td>'
-      +'<td style="padding:10px 16px;border-bottom:1px solid rgba(38,38,74,0.4);"><div style="display:flex;align-items:center;gap:10px;"><div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:Syne,sans-serif;flex-shrink:0;">'+initials(emp.name)+'</div><span style="font-size:13px;font-weight:500;">'+emp.name+'</span></div></td>'
-      +wAvgs
-      +'<td style="text-align:center;padding:10px 16px;border-bottom:1px solid rgba(38,38,74,0.4);">'+avgDisp+'</td>'
-      +'</tr>';
+    for(var w=1;w<=4;w++) { var wr=getRating(mi,w,emp.name); var wv=wr&&wr.avg&&wr.avg!=='—'?parseFloat(wr.avg).toFixed(2):'—'; wAvgs+='<td style="text-align:center;padding:10px 8px;font-size:13px;border-bottom:1px solid rgba(38,38,74,0.4);color:'+(wv!=='—'?'var(--text)':'var(--muted)')+';">'+wv+'</td>'; }
+    var avgDisp=emp.avg!==null?'<span style="font-family:Syne,sans-serif;font-weight:800;font-size:15px;color:'+(emp.avg>=4?'var(--accent3)':emp.avg>=3?'var(--accent)':'var(--accent2)')+'">'+emp.avg.toFixed(2)+'</span>':'<span style="color:var(--muted)">No data</span>';
+    html+='<tr style="'+(i<3&&emp.avg!==null?'background:rgba(124,111,255,0.04);':'')+'"><td style="text-align:center;padding:10px 16px;border-bottom:1px solid rgba(38,38,74,0.4);">'+rankDisp+'</td><td style="padding:10px 16px;border-bottom:1px solid rgba(38,38,74,0.4);"><div style="display:flex;align-items:center;gap:10px;"><div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:Syne,sans-serif;flex-shrink:0;">'+initials(emp.name)+'</div><span style="font-size:13px;font-weight:500;">'+emp.name+'</span></div></td>'+wAvgs+'<td style="text-align:center;padding:10px 16px;border-bottom:1px solid rgba(38,38,74,0.4);">'+avgDisp+'</td></tr>';
   }
-  html += '</tbody></table></div>';
-  el.innerHTML = html;
+  html+='</tbody></table></div>'; el.innerHTML=html;
 }
 
-// ===================== TOP PERFORMERS =====================
-function getPhotoKey(emp, monthIdx) { return 'photo_'+monthIdx+'_'+emp.replace(/\s+/g,'_'); }
-
+// ── Top Performers ────────────────────────────────────────────
+function getPhotoKey(emp,monthIdx) { return 'photo_'+monthIdx+'_'+emp.replace(/\s+/g,'_'); }
 function renderToppers() {
-  EMPS = getEmps();
-  var el = document.getElementById('toppers-content');
-  if(!el) return;
+  EMPS=getEmps();
+  var el=document.getElementById('toppers-content'); if(!el) return;
   var html='';
-
   for(var mi=0;mi<MONTHS.length;mi++) {
-    var list = getRankedList(mi).filter(function(l){return l.avg!==null;});
+    var list=getRankedList(mi).filter(function(l){return l.avg!==null;});
     if(list.length===0) continue;
-    var top3 = list.slice(0,3);
-    var medals=['🥇','🥈','🥉'];
-    var medalLabels=['1st Place','2nd Place','3rd Place'];
+    var top3=list.slice(0,3);
+    var medals=['🥇','🥈','🥉'], medalLabels=['1st Place','2nd Place','3rd Place'];
     var medalGrad=['linear-gradient(135deg,#FFD700,#FFA500)','linear-gradient(135deg,#C0C0C0,#808080)','linear-gradient(135deg,#CD7F32,#8B4513)'];
     var medalBg=['rgba(255,215,0,0.08)','rgba(192,192,192,0.06)','rgba(205,127,50,0.06)'];
     var medalBorder=['rgba(255,215,0,0.25)','rgba(192,192,192,0.2)','rgba(205,127,50,0.2)'];
-
     html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px;margin-bottom:20px;">';
     html+='<div style="font-family:Syne,sans-serif;font-size:18px;font-weight:800;margin-bottom:4px;">'+MONTHS[mi]+' 2026</div>';
     html+='<div style="font-size:13px;color:var(--muted);margin-bottom:20px;">Top performers based on monthly average</div>';
     html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;">';
-
     for(var t=0;t<top3.length;t++) {
-      var emp=top3[t].name;
-      var avg=top3[t].avg;
+      var emp=top3[t].name, avg=top3[t].avg;
       var photoKey=getPhotoKey(emp,mi);
-      var photo=lsGet(photoKey);
-      var photoHtml = photo
-        ? '<img src="'+photo+'" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid '+medalGrad[t].split(',')[1].replace(')','').trim()+';" />'
-        : '<div style="width:80px;height:80px;border-radius:50%;background:'+medalGrad[t]+';display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-size:24px;font-weight:800;color:white;">'+initials(emp)+'</div>';
-
-      html+='<div style="background:'+medalBg[t]+';border:1px solid '+medalBorder[t]+';border-radius:16px;padding:20px;text-align:center;position:relative;">'
+      // Photos are local-only (base64 too large for Sheets)
+      var photo=lsGetLocal(photoKey);
+      var photoHtml=photo?'<img src="'+photo+'" style="width:80px;height:80px;border-radius:50%;object-fit:cover;" />'
+        :'<div style="width:80px;height:80px;border-radius:50%;background:'+medalGrad[t]+';display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-size:24px;font-weight:800;color:white;">'+initials(emp)+'</div>';
+      html+='<div style="background:'+medalBg[t]+';border:1px solid '+medalBorder[t]+';border-radius:16px;padding:20px;text-align:center;">'
         +'<div style="font-size:28px;margin-bottom:12px;">'+medals[t]+'</div>'
-        +'<div style="display:flex;justify-content:center;margin-bottom:12px;position:relative;">'
-        +photoHtml
-        +'</div>'
+        +'<div style="display:flex;justify-content:center;margin-bottom:12px;">'+photoHtml+'</div>'
         +'<div style="font-family:Syne,sans-serif;font-size:15px;font-weight:800;margin-bottom:4px;">'+emp+'</div>'
         +'<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">'+medalLabels[t]+'</div>'
         +'<div style="font-size:24px;font-weight:800;font-family:Syne,sans-serif;color:'+(t===0?'#FFD700':t===1?'#C0C0C0':'#CD7F32')+';">'+avg.toFixed(2)+'<span style="font-size:12px;color:var(--muted)"> / 5</span></div>'
@@ -1407,120 +1481,84 @@ function renderToppers() {
     }
     html+='</div></div>';
   }
-
-  if(!html) html='<div style="text-align:center;padding:60px 20px;color:var(--muted);"><div style="font-size:48px;margin-bottom:16px;">🏆</div><div style="font-size:16px;">No ratings submitted yet.</div><div style="font-size:13px;margin-top:6px;">Start rating employees to see top performers appear here.</div></div>';
+  if(!html) html='<div style="text-align:center;padding:60px 20px;color:var(--muted);"><div style="font-size:48px;margin-bottom:16px;">🏆</div><div style="font-size:16px;">No ratings submitted yet.</div></div>';
   el.innerHTML=html;
 }
 
-function uploadPhoto(input, emp, monthIdx) {
+function uploadPhoto(input,emp,monthIdx) {
   var file=input.files[0]; if(!file) return;
-  if(file.size > 2*1024*1024) { showToast('Image too large. Max 2MB.','error'); return; }
+  if(file.size>2*1024*1024) { showToast('Image too large. Max 2MB.','error'); return; }
   var reader=new FileReader();
   reader.onload=function(e){
-    lsSet(getPhotoKey(emp,monthIdx), e.target.result);
-    showToast('Photo uploaded for '+emp+' ✓','success');
+    // Photos stored locally only (base64 too large for Google Sheets)
+    lsSetLocal(getPhotoKey(emp,monthIdx), e.target.result);
+    showToast('Photo uploaded for '+emp+' ✓ (stored locally)','success');
     renderToppers();
   };
   reader.readAsDataURL(file);
 }
 
-function removePhoto(emp, monthIdx) {
+function removePhoto(emp,monthIdx) {
   try { localStorage.removeItem('photo_'+monthIdx+'_'+emp.replace(/\s+/g,'_')); } catch(e){}
-  showToast('Photo removed','info');
-  renderToppers();
+  showToast('Photo removed','info'); renderToppers();
 }
 
-// ===================== GRAPH FUNCTIONS =====================
-var chartInstance = null;
-var teamChartInstance = null;
-
+// ── Graph Functions ───────────────────────────────────────────
+var chartInstance=null, teamChartInstance=null;
 function initGraphSelects() {
-  EMPS = getEmps();
-  var ge = document.getElementById('graph-emp');
-  var gm = document.getElementById('graph-month');
-  var tm = document.getElementById('team-month');
+  EMPS=getEmps();
+  var ge=document.getElementById('graph-emp'), gm=document.getElementById('graph-month'), tm=document.getElementById('team-month');
   if(!ge) return;
-  ge.innerHTML = '';
-  for(var i=0;i<EMPS.length;i++) {
-    var o=document.createElement('option'); o.value=EMPS[i]; o.textContent=EMPS[i]; ge.appendChild(o);
-  }
-  ge.onchange = function() { renderGraph(); };
-  if(gm) { gm.innerHTML=''; for(var i=0;i<MONTHS.length;i++){var o=document.createElement('option');o.value=i;o.textContent=MONTHS[i]+' 2026';gm.appendChild(o);} }
-  if(tm) { tm.innerHTML=''; for(var i=0;i<MONTHS.length;i++){var o=document.createElement('option');o.value=i;o.textContent=MONTHS[i]+' 2026';tm.appendChild(o);} }
-  var gv = document.getElementById('graph-view');
-  if(gv) gv.onchange = function() {
-    document.getElementById('graph-month-wrap').style.display = (this.value==='by-month'||this.value==='criteria') ? 'block' : 'none';
-    renderGraph();
-  };
+  ge.innerHTML=''; for(var i=0;i<EMPS.length;i++){var o=document.createElement('option');o.value=EMPS[i];o.textContent=EMPS[i];ge.appendChild(o);}
+  ge.onchange=function(){renderGraph();};
+  if(gm){gm.innerHTML='';for(var i=0;i<MONTHS.length;i++){var o=document.createElement('option');o.value=i;o.textContent=MONTHS[i]+' 2026';gm.appendChild(o);}}
+  if(tm){tm.innerHTML='';for(var i=0;i<MONTHS.length;i++){var o=document.createElement('option');o.value=i;o.textContent=MONTHS[i]+' 2026';tm.appendChild(o);}}
+  var gv=document.getElementById('graph-view');
+  if(gv) gv.onchange=function(){ document.getElementById('graph-month-wrap').style.display=(this.value==='by-month'||this.value==='criteria')?'block':'none'; renderGraph(); };
 }
-
 function renderGraph() {
-  var geEl=document.getElementById('graph-emp');
-  var gvEl=document.getElementById('graph-view');
-  var gmEl=document.getElementById('graph-month');
+  var geEl=document.getElementById('graph-emp'),gvEl=document.getElementById('graph-view'),gmEl=document.getElementById('graph-month');
   if(!geEl||!gvEl) return;
-  var emp=geEl.value, view=gvEl.value, monthIdx=parseInt(gmEl?gmEl.value:0);
-  var canvas=document.getElementById('ratingChart');
-  if(!canvas) return;
+  var emp=geEl.value,view=gvEl.value,monthIdx=parseInt(gmEl?gmEl.value:0);
+  var canvas=document.getElementById('ratingChart'); if(!canvas) return;
   if(chartInstance){chartInstance.destroy();chartInstance=null;}
   var weekColors=['#7c6fff','#ff6b9d','#38ef7d','#ffc94a'];
-
   if(view==='all-weeks') {
     var labels=[],data=[];
-    for(var mi=0;mi<MONTHS.length;mi++) for(var w=1;w<=4;w++) {
-      var r=getRating(mi,w,emp);
-      if(r&&r.avg&&r.avg!=='—'){labels.push(MONTHS[mi].substr(0,3)+' W'+w);data.push(parseFloat(r.avg));}
-    }
+    for(var mi=0;mi<MONTHS.length;mi++) for(var w=1;w<=4;w++){var r=getRating(mi,w,emp);if(r&&r.avg&&r.avg!=='—'){labels.push(MONTHS[mi].substr(0,3)+' W'+w);data.push(parseFloat(r.avg));}}
     if(!data.length){canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);return;}
-    chartInstance=new Chart(canvas,{type:'line',data:{labels:labels,datasets:[{label:emp+' — Avg Rating',data:data,borderColor:'#7c6fff',backgroundColor:'rgba(124,111,255,0.1)',borderWidth:2.5,pointBackgroundColor:'#7c6fff',pointRadius:5,pointHoverRadius:7,tension:0.3,fill:true}]},options:getChartOptions('Rating (out of 5)',0,5)});
+    chartInstance=new Chart(canvas,{type:'line',data:{labels:labels,datasets:[{label:emp+' — Avg Rating',data:data,borderColor:'#7c6fff',backgroundColor:'rgba(124,111,255,0.1)',borderWidth:2.5,pointBackgroundColor:'#7c6fff',pointRadius:5,tension:0.3,fill:true}]},options:getChartOptions('Rating (out of 5)',0,5)});
   } else if(view==='by-month') {
     var labels=['Week 1','Week 2','Week 3','Week 4'],data=[];
     for(var w=1;w<=4;w++){var r=getRating(monthIdx,w,emp);data.push(r&&r.avg&&r.avg!=='—'?parseFloat(r.avg):null);}
     chartInstance=new Chart(canvas,{type:'bar',data:{labels:labels,datasets:[{label:emp+' — '+MONTHS[monthIdx],data:data,backgroundColor:['rgba(124,111,255,0.7)','rgba(255,107,157,0.7)','rgba(56,239,125,0.7)','rgba(255,201,74,0.7)'],borderColor:weekColors,borderWidth:2,borderRadius:8}]},options:getChartOptions('Rating (out of 5)',0,5)});
   } else if(view==='criteria') {
     var ds=[];
-    for(var w=1;w<=4;w++){
-      var r=getRating(monthIdx,w,emp),wdata=[];
-      for(var ci=0;ci<CRITERIA.length;ci++) wdata.push(r&&r.criteria?(r.criteria[CRITERIA[ci]]||0):0);
-      ds.push({label:'Week '+w,data:wdata,borderColor:weekColors[w-1],backgroundColor:weekColors[w-1]+'33',borderWidth:2,pointRadius:4});
-    }
+    for(var w=1;w<=4;w++){var r=getRating(monthIdx,w,emp),wdata=[];for(var ci=0;ci<CRITERIA.length;ci++)wdata.push(r&&r.criteria?(r.criteria[CRITERIA[ci]]||0):0);ds.push({label:'Week '+w,data:wdata,borderColor:weekColors[w-1],backgroundColor:weekColors[w-1]+'33',borderWidth:2,pointRadius:4});}
     var shortLabels=CRITERIA.map(function(l){return l.length>16?l.substring(0,16)+'…':l;});
     chartInstance=new Chart(canvas,{type:'radar',data:{labels:shortLabels,datasets:ds},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#e2e2f0',font:{family:'DM Sans'}}}},scales:{r:{min:0,max:5,ticks:{stepSize:1,color:'#6868a0',backdropColor:'transparent'},grid:{color:'rgba(104,104,160,0.2)'},pointLabels:{color:'#e2e2f0',font:{family:'DM Sans',size:11}},angleLines:{color:'rgba(104,104,160,0.2)'}}}}});
   }
 }
-
 function renderTeamChart() {
-  var tmEl=document.getElementById('team-month');
-  if(!tmEl) return;
-  var monthIdx=parseInt(tmEl.value||0);
-  var canvas=document.getElementById('teamChart');
-  if(!canvas) return;
+  var tmEl=document.getElementById('team-month'); if(!tmEl) return;
+  var monthIdx=parseInt(tmEl.value||0),canvas=document.getElementById('teamChart'); if(!canvas) return;
   if(teamChartInstance){teamChartInstance.destroy();teamChartInstance=null;}
-  var labels=['Week 1','Week 2','Week 3','Week 4'],data=[];
-  EMPS=getEmps();
-  for(var w=1;w<=4;w++){
-    var total=0,cnt=0;
-    for(var i=0;i<EMPS.length;i++){var r=getRating(monthIdx,w,EMPS[i]);if(r&&r.avg&&r.avg!=='—'){total+=parseFloat(r.avg);cnt++;}}
-    data.push(cnt>0?parseFloat((total/cnt).toFixed(2)):null);
-  }
+  var labels=['Week 1','Week 2','Week 3','Week 4'],data=[]; EMPS=getEmps();
+  for(var w=1;w<=4;w++){var total=0,cnt=0;for(var i=0;i<EMPS.length;i++){var r=getRating(monthIdx,w,EMPS[i]);if(r&&r.avg&&r.avg!=='—'){total+=parseFloat(r.avg);cnt++;}}data.push(cnt>0?parseFloat((total/cnt).toFixed(2)):null);}
   teamChartInstance=new Chart(canvas,{type:'bar',data:{labels:labels,datasets:[{label:'Team Avg — '+MONTHS[monthIdx],data:data,backgroundColor:['rgba(124,111,255,0.7)','rgba(255,107,157,0.7)','rgba(56,239,125,0.7)','rgba(255,201,74,0.7)'],borderColor:['#7c6fff','#ff6b9d','#38ef7d','#ffc94a'],borderWidth:2,borderRadius:8}]},options:getChartOptions('Team Average Rating',0,5)});
 }
-
 function getChartOptions(yLabel,yMin,yMax) {
   return {responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#e2e2f0',font:{family:'DM Sans',size:12}}},tooltip:{backgroundColor:'rgba(16,16,28,0.95)',titleColor:'#e2e2f0',bodyColor:'#6868a0',borderColor:'#26264a',borderWidth:1,padding:12}},scales:{x:{ticks:{color:'#6868a0',font:{family:'DM Sans'}},grid:{color:'rgba(38,38,74,0.5)'}},y:{min:yMin,max:yMax,ticks:{color:'#6868a0',font:{family:'DM Sans'},stepSize:1},grid:{color:'rgba(38,38,74,0.5)'},title:{display:true,text:yLabel,color:'#6868a0',font:{family:'DM Sans',size:11}}}}};
 }
 
-// ===================== CSV EXPORT FUNCTIONS =====================
+// ── CSV Export ────────────────────────────────────────────────
 function initExportSelects() {
-  EMPS = getEmps();
-  var em=document.getElementById('export-month');
-  var ee=document.getElementById('export-emp');
-  if(!em||!ee) return;
+  EMPS=getEmps();
+  var em=document.getElementById('export-month'),ee=document.getElementById('export-emp'); if(!em||!ee) return;
   em.innerHTML=''; ee.innerHTML='';
   for(var i=0;i<MONTHS.length;i++){var o=document.createElement('option');o.value=i;o.textContent=MONTHS[i]+' 2026';em.appendChild(o);}
   for(var i=0;i<EMPS.length;i++){var o=document.createElement('option');o.value=EMPS[i];o.textContent=EMPS[i];ee.appendChild(o);}
 }
-
 function buildCSVRows(empFilter,monthFilter) {
   EMPS=getEmps();
   var headers=['Employee','Month','Week','Attendance/Availability','Professionalism/Behavior','Support Resolution Rate+FCR','Ownership','Quality & CSAT','Proactiveness','Average','Comments','Saved By','Last Edited At'];
@@ -1532,18 +1570,12 @@ function buildCSVRows(empFilter,monthFilter) {
       if(monthFilter!==null&&monthFilter!==undefined&&monthFilter!==mi) continue;
       for(var w=1;w<=4;w++) {
         var r=getRating(mi,w,emp);
-        if(r) {
-          rows.push(['"'+emp+'"',MONTHS[mi],'Week '+w,
-            r.criteria[CRITERIA[0]]||0,r.criteria[CRITERIA[1]]||0,r.criteria[CRITERIA[2]]||0,
-            r.criteria[CRITERIA[3]]||0,r.criteria[CRITERIA[4]]||0,r.criteria[CRITERIA[5]]||0,
-            r.avg,'"'+(r.comment||'').replace(/"/g,"''")+'"','"'+(r.savedBy||'Unknown')+'"',r.savedAt||'']);
-        }
+        if(r) rows.push(['"'+emp+'"',MONTHS[mi],'Week '+w,r.criteria[CRITERIA[0]]||0,r.criteria[CRITERIA[1]]||0,r.criteria[CRITERIA[2]]||0,r.criteria[CRITERIA[3]]||0,r.criteria[CRITERIA[4]]||0,r.criteria[CRITERIA[5]]||0,r.avg,'"'+(r.comment||'').replace(/"/g,"''")+'"','"'+(r.savedBy||'Unknown')+'"',r.savedAt||'']);
       }
     }
   }
   return rows;
 }
-
 function downloadCSV(rows,filename) {
   if(rows.length<=1){showToast('No rating data to export','error');return;}
   var csv=rows.map(function(r){return r.join(',');}).join('\n');
@@ -1553,24 +1585,39 @@ function downloadCSV(rows,filename) {
   document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
   showToast('Downloaded: '+filename,'success');
 }
-
-function exportAllCSV() { downloadCSV(buildCSVRows(null,null),'team_ratings_all_2026.csv'); }
+function exportAllCSV()   { downloadCSV(buildCSVRows(null,null),'team_ratings_all_2026.csv'); }
 function exportMonthCSV() { var mi=parseInt(document.getElementById('export-month').value); downloadCSV(buildCSVRows(null,mi),'team_ratings_'+MONTHS[mi]+'_2026.csv'); }
-function exportEmpCSV() { var emp=document.getElementById('export-emp').value; downloadCSV(buildCSVRows(emp,null),'rating_'+emp.replace(/\s+/g,'_')+'_2026.csv'); }
+function exportEmpCSV()   { var emp=document.getElementById('export-emp').value; downloadCSV(buildCSVRows(emp,null),'rating_'+emp.replace(/\s+/g,'_')+'_2026.csv'); }
 
-// INIT — attach login button after DOM ready
-window.onload = function() {
+// ── Boot Sequence ─────────────────────────────────────────────
+window.onload = async function() {
+  // Show loading overlay while we connect to Google Sheets
+  var overlay = document.getElementById('loading-overlay');
+  overlay.style.display = 'flex';
+
+  await loadAllData();
+
+  // Small minimum display time so it doesn't flash
+  await new Promise(function(r){ setTimeout(r, 400); });
+
+  // Hide loading, show login
+  overlay.style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+
+  // Attach event handlers
   var btn = document.getElementById('login-btn');
-  if(btn) {
-    btn.onclick = function() { doLogin(); };
-  }
+  if(btn) btn.onclick = function(){ doLogin(); };
   var em = document.getElementById('lemail');
-  if(em) em.onkeypress = function(e) { if(e.keyCode===13||e.key==='Enter') doLogin(); };
-  // new employee input enter key
-  var nei = document.getElementById('new-emp-name');
-  if(nei) nei.onkeypress = function(e) { if(e.keyCode===13||e.key==='Enter') addEmployee(); };
+  if(em) em.onkeypress = function(e){ if(e.key==='Enter') doLogin(); };
   var pw = document.getElementById('lpass');
-  if(pw) pw.onkeypress = function(e) { if(e.keyCode===13||e.key==='Enter') doLogin(); };
+  if(pw) pw.onkeypress = function(e){ if(e.key==='Enter') doLogin(); };
+  var nei = document.getElementById('new-emp-name');
+  if(nei) nei.onkeypress = function(e){ if(e.key==='Enter') addEmployee(); };
+
+  // Inform user if GAS is not set up
+  if(!isGASConfigured()) {
+    console.warn('[Team Performance] GAS_URL not configured. Running in local-only mode.\nSet GAS_URL in the script to enable cross-device sync via Google Sheets.');
+  }
 };
 </script>
 </body>
