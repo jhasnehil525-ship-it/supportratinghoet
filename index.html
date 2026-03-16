@@ -158,6 +158,34 @@ header {
 .cbox label { font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); display:block; margin-bottom:8px; }
 .cbox textarea { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:11px 14px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:13px; resize:vertical; min-height:70px; outline:none; transition:border-color 0.2s; }
 .cbox textarea:focus { border-color:var(--accent); }
+
+/* KPI SECTION */
+.kpi-section { margin-top:20px; }
+.kpi-toggle { width:100%; padding:13px 18px; background:var(--surface2); border:1px solid var(--border); border-radius:12px; color:var(--text); font-family:'Syne',sans-serif; font-size:14px; font-weight:700; cursor:pointer; text-align:left; display:flex; align-items:center; justify-content:space-between; transition:all 0.2s; }
+.kpi-toggle:hover { border-color:var(--accent); }
+.kpi-toggle .karrow { transition:transform 0.2s; font-style:normal; }
+.kpi-toggle.open .karrow { transform:rotate(180deg); }
+.kpi-body { display:none; margin-top:12px; background:var(--surface2); border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+.kpi-body.open { display:block; }
+.kpi-table { width:100%; border-collapse:collapse; }
+.kpi-table th { padding:10px 14px; font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); border-bottom:1px solid var(--border); text-align:left; background:var(--surface); }
+.kpi-table th:last-child { text-align:center; width:160px; }
+.kpi-table td { padding:11px 14px; border-bottom:1px solid rgba(38,38,74,0.5); font-size:13px; vertical-align:middle; }
+.kpi-table tr:last-child td { border-bottom:none; }
+.kpi-table tr:hover td { background:rgba(124,111,255,0.02); }
+.kpi-name { font-weight:600; color:var(--text); }
+.kpi-desc { font-size:12px; color:var(--muted); margin-top:2px; }
+.kpi-target { font-size:12px; color:var(--accent4); font-weight:600; margin-top:2px; }
+.kpi-input-wrap { display:flex; align-items:center; gap:8px; justify-content:center; }
+.kpi-input { width:90px; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:7px 10px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:13px; outline:none; text-align:center; transition:border-color 0.2s; }
+.kpi-input:focus { border-color:var(--accent); }
+.kpi-input:read-only { opacity:0.7; cursor:default; }
+.kpi-unit { font-size:12px; color:var(--muted); }
+.kpi-status { display:inline-flex; align-items:center; gap:4px; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:600; }
+.kpi-status.met { background:rgba(56,239,125,0.15); color:var(--accent3); }
+.kpi-status.notmet { background:rgba(255,77,109,0.12); color:var(--danger); }
+.kpi-status.na { background:rgba(104,104,160,0.1); color:var(--muted); }
+
 #save-btn { width:100%; margin-top:16px; padding:14px; background:linear-gradient(135deg,var(--accent),var(--accent2)); border:none; border-radius:12px; color:white; font-family:'Syne',sans-serif; font-size:15px; font-weight:700; cursor:pointer; transition:all 0.2s; }
 #save-btn:hover { opacity:0.9; transform:translateY(-1px); }
 
@@ -336,7 +364,19 @@ header {
                 <label>Additional Comments</label>
                 <textarea id="cfield" placeholder="Add notes about performance..."></textarea>
               </div>
-              <div id="audit-trail" style="display:none;margin-top:14px;padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;font-size:12px;"></div>
+              <div class="kpi-section">
+                <button class="kpi-toggle" id="kpi-toggle-btn" type="button" onclick="toggleKPI()">
+                  <span>📊 KPI Targets <span id="kpi-filled-count" style="font-size:11px;color:var(--muted);font-weight:400;margin-left:6px;"></span></span>
+                  <i class="karrow">▼</i>
+                </button>
+                <div class="kpi-body" id="kpi-body">
+                  <table class="kpi-table">
+                    <thead><tr><th>KPI</th><th>Description & Monthly Target</th><th>Actual Value</th></tr></thead>
+                    <tbody id="kpi-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
+              <div id="audit-trail"  style="display:none;margin-top:14px;padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;font-size:12px;"></div>
               <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">
                 <button id="save-btn" type="button" onclick="saveRating()" style="flex:1;min-width:140px;">Save Rating ✓</button>
                 <button id="undo-btn" type="button" onclick="undoRating()" style="padding:14px 18px;background:rgba(255,201,74,0.15);border:1px solid rgba(255,201,74,0.3);border-radius:12px;color:var(--accent4);font-family:Syne,sans-serif;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;display:none;" title="Undo last change">↩ Undo</button>
@@ -497,6 +537,93 @@ function getEmps() { return lsGet('employee_list') || DEFAULT_EMPS; }
 function saveEmps(list) { lsSet('employee_list', list); }
 // EMPS is now a live reference — always call getEmps() for current list
 var EMPS = DEFAULT_EMPS; // will be refreshed on startApp
+
+
+var KPI_DEFS = [
+  { key:'quality',       name:'Quality',                      desc:'How good and correct your replies are.',                         target:'90%',          unit:'%',       targetNum:90  },
+  { key:'sla',           name:'SLA (Timely Response)',         desc:'Replying to customers on time.',                                 target:'100%',         unit:'%',       targetNum:100 },
+  { key:'csat',          name:'CSAT (Customer Satisfaction)',  desc:'Rating given by the customer after support.',                    target:'85%',          unit:'%',       targetNum:85  },
+  { key:'csat_response', name:'CSAT Survey Response Rate',     desc:'% of customers who actually respond to the CSAT survey.',       target:'Chat/Email: 25–35%+, Call: 35%+', unit:'%', targetNum:25 },
+  { key:'fr',            name:'First Response (FR)',           desc:'How fast you send the first reply.',                             target:'100%',         unit:'%',       targetNum:100 },
+  { key:'aht',           name:'AHT (Avg Handling Time)',       desc:'Time you take to handle one chat.',                              target:'3 mins/chat',  unit:'mins',    targetNum:3   },
+  { key:'occupancy',     name:'Occupancy',                     desc:'How active and busy you are during work time.',                  target:'85%',          unit:'%',       targetNum:85  },
+  { key:'reopen',        name:'Reopen Count',                  desc:'When a customer comes back for the same issue.',                 target:'0%',           unit:'%',       targetNum:0   },
+  { key:'shrinkage',     name:'Shrinkage',                     desc:'Time not available (leaves, breaks, etc.).',                    target:'Keep it low',  unit:'%',       targetNum:null},
+  { key:'chat_target',   name:'Chat/Mail Target',              desc:'Number of chats/mail you need to reply to.',                    target:'120/day',      unit:'/day',    targetNum:120 },
+  { key:'call_target',   name:'Call Target',                   desc:'Number of calls you need to make/receive.',                     target:'100/day',      unit:'/day',    targetNum:100 },
+  { key:'disposition',   name:'Disposition Accuracy',          desc:'Select correctly relevant disposition values.',                  target:'100%',         unit:'%',       targetNum:100 },
+  { key:'followup',      name:'Follow-up',                     desc:'Follow up to resolve the CX pending query.',                    target:'100%',         unit:'%',       targetNum:100 }
+];
+
+var curKPI = {};
+
+function toggleKPI() {
+  var btn = document.getElementById('kpi-toggle-btn');
+  var body = document.getElementById('kpi-body');
+  btn.classList.toggle('open');
+  body.classList.toggle('open');
+}
+
+function buildKPITable(savedKPI, readOnly) {
+  curKPI = savedKPI ? JSON.parse(JSON.stringify(savedKPI)) : {};
+  var tbody = document.getElementById('kpi-tbody');
+  if(!tbody) return;
+  tbody.innerHTML = '';
+  var filled = 0;
+  for(var i=0;i<KPI_DEFS.length;i++) {
+    (function(kpi){
+      var val = curKPI[kpi.key] !== undefined ? curKPI[kpi.key] : '';
+      if(val !== '') filled++;
+      var inputId = 'kpi_'+kpi.key;
+      var statusHtml = '';
+      if(val !== '' && kpi.targetNum !== null) {
+        var num = parseFloat(val);
+        if(!isNaN(num)) {
+          // For AHT lower is better, for reopen 0 is target
+          var met = (kpi.key==='aht') ? num<=kpi.targetNum : (kpi.key==='reopen') ? num===0 : num>=kpi.targetNum;
+          statusHtml = met
+            ? '<span class="kpi-status met">✓ Met</span>'
+            : '<span class="kpi-status notmet">✗ Below</span>';
+        }
+      } else if(val !== '') {
+        statusHtml = '<span class="kpi-status na">Recorded</span>';
+      }
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td><div class="kpi-name">'+kpi.name+'</div><div class="kpi-desc">'+kpi.desc+'</div><div class="kpi-target">Target: '+kpi.target+'</div></td>'
+        +'<td><div class="kpi-input-wrap">'
+        +(readOnly
+          ? '<span style="font-size:15px;font-weight:700;color:var(--text);">'+(val!==''?val:'—')+'</span> <span class="kpi-unit">'+kpi.unit+'</span> '+statusHtml
+          : '<input type="number" min="0" class="kpi-input" id="'+inputId+'" value="'+val+'" placeholder="—" onchange="updateKPI(\''+kpi.key+'\',this.value)" oninput="updateKPI(\''+kpi.key+'\',this.value)"> <span class="kpi-unit">'+kpi.unit+'</span> <span id="kpi-status-'+kpi.key+'">'+statusHtml+'</span>'
+        )+'</div></td>';
+      tbody.appendChild(tr);
+    })(KPI_DEFS[i]);
+  }
+  var countEl = document.getElementById('kpi-filled-count');
+  if(countEl) countEl.textContent = '('+filled+' / '+KPI_DEFS.length+' filled)';
+}
+
+function updateKPI(key, val) {
+  curKPI[key] = val !== '' ? parseFloat(val) : '';
+  // Update status indicator live
+  var kpi = null;
+  for(var i=0;i<KPI_DEFS.length;i++) if(KPI_DEFS[i].key===key) { kpi=KPI_DEFS[i]; break; }
+  if(!kpi) return;
+  var statusEl = document.getElementById('kpi-status-'+key);
+  if(statusEl && val!=='' && kpi.targetNum!==null) {
+    var num = parseFloat(val);
+    var met = (kpi.key==='aht') ? num<=kpi.targetNum : (kpi.key==='reopen') ? num===0 : num>=kpi.targetNum;
+    statusEl.innerHTML = met
+      ? '<span class="kpi-status met">✓ Met</span>'
+      : '<span class="kpi-status notmet">✗ Below</span>';
+  } else if(statusEl) {
+    statusEl.innerHTML = val!=='' ? '<span class="kpi-status na">Recorded</span>' : '';
+  }
+  // Update filled count
+  var filled=0;
+  for(var i=0;i<KPI_DEFS.length;i++) if(curKPI[KPI_DEFS[i].key]!==undefined && curKPI[KPI_DEFS[i].key]!=='') filled++;
+  var countEl=document.getElementById('kpi-filled-count');
+  if(countEl) countEl.textContent='('+filled+' / '+KPI_DEFS.length+' filled)';
+}
 
 var CRITERIA = [
   'Attendance / Availability',
@@ -757,6 +884,13 @@ function buildForm(emp) {
   document.getElementById('cfield').readOnly = viewOnly;
   document.getElementById('vobanner').style.display = viewOnly ? 'block' : 'none';
   document.getElementById('save-btn').style.display = viewOnly ? 'none' : 'block';
+  // Build KPI table
+  buildKPITable(saved ? (saved.kpi||{}) : {}, viewOnly);
+  // Reset KPI toggle state
+  var kpiBtn = document.getElementById('kpi-toggle-btn');
+  var kpiBody = document.getElementById('kpi-body');
+  if(kpiBtn) kpiBtn.classList.remove('open');
+  if(kpiBody) kpiBody.classList.remove('open');
   var cl = document.getElementById('clist'); cl.innerHTML='';
   for(var j=0;j<CRITERIA.length;j++) {
     (function(crit){
@@ -834,11 +968,12 @@ function saveRating() {
   var history = existing ? (existing.history||[]) : [];
   // Push current state to history before overwriting
   if(existing) {
-    history.push({ criteria: existing.criteria, avg: existing.avg, comment: existing.comment, savedAt: existing.savedAt, savedBy: existing.savedBy||'Unknown' });
+    history.push({ criteria: existing.criteria, avg: existing.avg, comment: existing.comment, kpi: existing.kpi||{}, savedAt: existing.savedAt, savedBy: existing.savedBy||'Unknown' });
   }
   var d = {
     criteria:{}, avg:calcAvg(),
     comment:document.getElementById('cfield').value,
+    kpi: curKPI,
     savedAt: new Date().toISOString(),
     savedBy: cu.adminName || cu.email,
     history: history
@@ -857,7 +992,7 @@ function undoRating() {
   }
   var prev = existing.history[existing.history.length-1];
   var newHistory = existing.history.slice(0,-1);
-  var d = { criteria: prev.criteria, avg: prev.avg, comment: prev.comment, savedAt: prev.savedAt, savedBy: prev.savedBy, history: newHistory, undoneBy: cu.adminName||cu.email, undoneAt: new Date().toISOString() };
+  var d = { criteria: prev.criteria, avg: prev.avg, comment: prev.comment, kpi: prev.kpi||{}, savedAt: prev.savedAt, savedBy: prev.savedBy, history: newHistory, undoneBy: cu.adminName||cu.email, undoneAt: new Date().toISOString() };
   setRating(cMonth,cWeek,cEmp,d);
   showToast('Rating restored to previous version ↩','info');
   setTimeout(function(){ buildForm(cEmp); },400);
