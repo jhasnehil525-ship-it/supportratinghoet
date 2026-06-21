@@ -20,16 +20,39 @@
   --danger: #ff4d6d;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
-body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; overflow-x:hidden; }
+
+/* soft static glows + grid (behind the animated aurora) */
 body::before {
   content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
-  background: radial-gradient(ellipse 600px 400px at 20% 20%, rgba(124,111,255,0.06) 0%, transparent 70%),
-              radial-gradient(ellipse 500px 300px at 80% 80%, rgba(255,107,157,0.05) 0%, transparent 70%);
+  background: radial-gradient(ellipse 600px 400px at 18% 12%, rgba(124,111,255,0.10) 0%, transparent 70%),
+              radial-gradient(ellipse 520px 320px at 82% 88%, rgba(255,107,157,0.08) 0%, transparent 70%);
 }
 body::after {
   content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
   background-image: linear-gradient(rgba(124,111,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(124,111,255,0.025) 1px, transparent 1px);
   background-size:48px 48px;
+  -webkit-mask-image: radial-gradient(ellipse 90% 90% at 50% 40%, #000 30%, transparent 100%);
+  mask-image: radial-gradient(ellipse 90% 90% at 50% 40%, #000 30%, transparent 100%);
+}
+
+/* ── ANIMATED AURORA BACKGROUND ── */
+.aurora { position:fixed; inset:-12%; z-index:0; pointer-events:none; overflow:hidden; }
+.orb { position:absolute; border-radius:50%; filter:blur(95px); will-change:transform; opacity:0.5; }
+.orb.o1 { width:540px; height:540px; left:-7%;  top:-10%;   background:radial-gradient(circle at 30% 30%, #7c6fff, transparent 70%); animation:drift1 27s ease-in-out infinite; }
+.orb.o2 { width:480px; height:480px; right:-6%; top:34%;    background:radial-gradient(circle at 60% 40%, #ff6b9d, transparent 70%); animation:drift2 33s ease-in-out infinite; }
+.orb.o3 { width:440px; height:440px; left:26%;  bottom:-14%; background:radial-gradient(circle at 50% 50%, #38ef7d, transparent 72%); opacity:0.30; animation:drift3 31s ease-in-out infinite; }
+.orb.o4 { width:360px; height:360px; right:24%; top:-12%;   background:radial-gradient(circle at 50% 50%, #ffc94a, transparent 72%); opacity:0.18; animation:drift1 38s ease-in-out infinite reverse; }
+@keyframes drift1 { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(64px,42px) scale(1.08)} 66%{transform:translate(-32px,72px) scale(0.95)} }
+@keyframes drift2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-72px,-52px) scale(1.1)} }
+@keyframes drift3 { 0%,100%{transform:translate(0,0) scale(1)} 40%{transform:translate(52px,-42px) scale(1.05)} 80%{transform:translate(-42px,-22px) scale(0.95)} }
+
+/* accessibility / quality floor */
+:focus-visible { outline:2px solid var(--accent); outline-offset:2px; border-radius:6px; }
+@media (prefers-reduced-motion: reduce) {
+  .orb { animation:none !important; }
+  .spinner { animation-duration:1.6s; }
+  .page { animation:none !important; }
 }
 
 /* ── LOADING OVERLAY ── */
@@ -50,13 +73,17 @@ body::after {
 .loading-logo {
   width:60px; height:60px; background:linear-gradient(135deg,var(--accent),var(--accent2));
   border-radius:18px; display:flex; align-items:center; justify-content:center; font-size:28px; margin-bottom:4px;
+  box-shadow:0 12px 36px rgba(124,111,255,0.40); animation:logofloat 4s ease-in-out infinite;
 }
+@keyframes logofloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
 
 /* ── SYNC INDICATOR ── */
 .sync-chip {
   display:flex; align-items:center; gap:6px; padding:5px 12px;
   background:var(--surface2); border:1px solid var(--border); border-radius:20px; font-size:11px; color:var(--muted);
+  cursor:pointer; transition:border-color 0.2s, color 0.2s; user-select:none;
 }
+.sync-chip:hover { border-color:var(--accent); color:var(--text); }
 #sync-dot { width:7px; height:7px; border-radius:50%; background:var(--muted); transition:background 0.4s; flex-shrink:0; }
 #sync-dot.synced  { background:var(--accent3); box-shadow:0 0 6px var(--accent3); }
 #sync-dot.syncing { background:var(--accent4); animation:pulse 0.9s ease-in-out infinite; }
@@ -67,17 +94,19 @@ body::after {
 /* LOGIN */
 #login-screen {
   position:fixed; inset:0; z-index:100;
-  display:none; align-items:center; justify-content:center; background:var(--bg);
+  display:none; align-items:center; justify-content:center; background:transparent;
 }
 .login-card {
-  background:var(--surface); border:1px solid var(--border); border-radius:24px;
+  background:linear-gradient(180deg, rgba(24,24,42,0.85), rgba(16,16,28,0.92));
+  -webkit-backdrop-filter:blur(18px); backdrop-filter:blur(18px);
+  border:1px solid var(--border); border-radius:24px;
   padding:48px 44px; width:100%; max-width:420px; position:relative; z-index:1;
-  box-shadow:0 32px 80px rgba(0,0,0,0.6);
+  box-shadow:0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(124,111,255,0.06) inset;
 }
 .login-logo {
   width:56px; height:56px; background:linear-gradient(135deg,var(--accent),var(--accent2));
   border-radius:16px; display:flex; align-items:center; justify-content:center;
-  font-size:24px; margin-bottom:24px;
+  font-size:24px; margin-bottom:24px; box-shadow:0 10px 30px rgba(124,111,255,0.35);
 }
 .login-card h2 { font-family:'Syne',sans-serif; font-size:26px; font-weight:800; margin-bottom:6px; }
 .login-card p { font-size:14px; color:var(--muted); margin-bottom:28px; }
@@ -93,9 +122,9 @@ body::after {
   width:100%; padding:15px; background:linear-gradient(135deg,var(--accent),var(--accent2));
   border:none; border-radius:12px; color:white; font-family:'Syne',sans-serif;
   font-size:16px; font-weight:700; cursor:pointer; margin-top:8px; letter-spacing:0.5px;
-  transition:opacity 0.2s, transform 0.2s;
+  transition:opacity 0.2s, transform 0.2s, box-shadow 0.2s; box-shadow:0 8px 24px rgba(124,111,255,0.25);
 }
-#login-btn:hover { opacity:0.9; transform:translateY(-1px); }
+#login-btn:hover { opacity:0.95; transform:translateY(-1px); box-shadow:0 12px 30px rgba(124,111,255,0.35); }
 #login-btn:active { transform:translateY(0); }
 #login-btn:disabled { opacity:0.6; cursor:default; transform:none; }
 .login-err {
@@ -108,7 +137,7 @@ body::after {
 #app { display:none; min-height:100vh; }
 header {
   position:sticky; top:0; z-index:50;
-  background:rgba(8,8,16,0.9); backdrop-filter:blur(24px);
+  background:rgba(8,8,16,0.82); -webkit-backdrop-filter:blur(24px); backdrop-filter:blur(24px);
   border-bottom:1px solid var(--border); padding:0 40px; height:64px;
   display:flex; align-items:center; justify-content:space-between;
 }
@@ -116,6 +145,7 @@ header {
 .hlogo {
   width:36px; height:36px; background:linear-gradient(135deg,var(--accent),var(--accent2));
   border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px;
+  box-shadow:0 6px 18px rgba(124,111,255,0.30);
 }
 .htitle { font-family:'Syne',sans-serif; font-size:17px; font-weight:800; }
 .hr { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
@@ -258,6 +288,11 @@ header {
 .etag button { background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; line-height:1; padding:0 2px; }
 .etag button:hover { color:var(--danger); }
 
+/* CSV bulk upload */
+.csv-drop { display:inline-flex; align-items:center; gap:8px; background:var(--surface2); border:1px dashed var(--border); border-radius:10px; padding:11px 16px; color:var(--muted); font-size:13px; cursor:pointer; transition:all 0.2s; min-width:220px; }
+.csv-drop:hover { border-color:var(--accent); color:var(--text); }
+.csv-drop.has-file { border-style:solid; border-color:var(--accent3); color:var(--accent3); }
+
 /* MY RATINGS */
 .macc { background:var(--surface); border:1px solid var(--border); border-radius:14px; margin-bottom:10px; overflow:hidden; }
 .mah { padding:16px 20px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; transition:background 0.15s; }
@@ -299,9 +334,15 @@ header {
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════════════════════════
-     LOADING OVERLAY — shown while connecting to Google Sheets
-     ═══════════════════════════════════════════════════════════ -->
+<!-- ── animated aurora background (behind everything) ── -->
+<div class="aurora" aria-hidden="true">
+  <div class="orb o1"></div>
+  <div class="orb o2"></div>
+  <div class="orb o3"></div>
+  <div class="orb o4"></div>
+</div>
+
+<!-- LOADING OVERLAY -->
 <div id="loading-overlay">
   <div class="loading-logo">⭐</div>
   <div class="loading-title">Team Performance</div>
@@ -336,7 +377,6 @@ header {
       <div class="htitle">Team Performance</div>
     </div>
     <div class="hr">
-      <!-- Manager tabs -->
       <div id="htabs-manager" style="display:none" class="htabs">
         <button class="htab active" type="button" onclick="switchTab('ratings')">Ratings</button>
         <button class="htab" type="button" onclick="switchTab('graphs')">📊 Graphs</button>
@@ -345,7 +385,6 @@ header {
         <button class="htab" type="button" onclick="switchTab('export')">📥 Export CSV</button>
         <button class="htab" type="button" onclick="switchTab('access')">Access Management</button>
       </div>
-      <!-- Viewer tabs -->
       <div id="htabs-viewer" style="display:none" class="htabs">
         <button class="htab active" type="button" onclick="switchTab('ratings')">My Ratings</button>
         <button class="htab" type="button" onclick="switchTab('rankings')">🏆 Rankings</button>
@@ -359,8 +398,7 @@ header {
         </div>
       </div>
       <div class="rbadge manager" id="rbadge">Manager</div>
-      <!-- Sync Status Indicator -->
-      <div class="sync-chip" id="sync-chip">
+      <div class="sync-chip" id="sync-chip" onclick="refreshData()" title="Click to refresh data from Google Sheets">
         <div id="sync-dot" class="local"></div>
         <span id="sync-text">Loading</span>
       </div>
@@ -543,6 +581,22 @@ header {
         <div style="font-family:Syne,sans-serif;font-size:11px;font-weight:700;margin-bottom:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Admin Accounts</div>
         <div style="display:flex;flex-wrap:wrap;gap:10px;" id="admin-list"></div>
       </div>
+
+      <!-- Bulk credential upload -->
+      <div class="asec" style="margin-bottom:20px;">
+        <h3>Bulk Upload Credentials (CSV)</h3>
+        <p>Set logins for many employees at once. <strong>Column&nbsp;1 = email</strong>, <strong>Column&nbsp;2 = password</strong>. Optional <strong>Column&nbsp;3 = employee name</strong> — use it to onboard brand-new employees or to force an exact match. A header row is detected and skipped automatically. Without a name column, each email is matched to an existing employee (by their current email, or by the part before the @).</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <label class="csv-drop" id="csv-drop">
+            <input type="file" id="csv-file" accept=".csv,text/csv" style="display:none;">
+            <span id="csv-file-label">📄 Choose CSV file…</span>
+          </label>
+          <button class="abtn" id="csv-apply-btn" type="button" onclick="applyCredentialCSV()" style="padding:11px 22px;">Upload &amp; Apply</button>
+          <button type="button" onclick="downloadCredTemplate()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;font-weight:600;padding:10px 14px;cursor:pointer;">↓ Template</button>
+        </div>
+        <div id="csv-result" style="display:none;margin-top:16px;"></div>
+      </div>
+
       <div class="asec" style="margin-bottom:20px;">
         <h3>Manage Employees</h3>
         <p>Add new employees to the team or remove existing ones.</p>
@@ -569,143 +623,126 @@ header {
 
 <script>
 /*
-╔══════════════════════════════════════════════════════════════════════╗
-║           GOOGLE SHEETS SETUP — FOLLOW THESE STEPS ONCE             ║
-╠══════════════════════════════════════════════════════════════════════╣
-║                                                                      ║
-║  STEP 1 — Create a Google Sheet                                      ║
-║    • Go to sheets.google.com → create a new blank spreadsheet        ║
-║    • Name it "Team Performance Data" (or anything you like)          ║
-║                                                                      ║
-║  STEP 2 — Open Apps Script                                           ║
-║    • In the sheet: Extensions → Apps Script                          ║
-║    • Delete ALL existing code in the editor                          ║
-║    • Copy and paste the Apps Script code below                       ║
-║    • Click 💾 Save (Ctrl+S)                                          ║
-║                                                                      ║
-║  STEP 3 — Deploy as Web App                                          ║
-║    • Click "Deploy" → "New Deployment"                               ║
-║    • Click the gear ⚙ next to "Type" → select "Web App"             ║
-║    • Description: "Team Performance API"                             ║
-║    • Execute as: Me                                                   ║
-║    • Who has access: Anyone                                          ║
-║    • Click "Deploy" → Authorize when prompted                        ║
-║    • COPY the Web App URL (looks like:                               ║
-║      https://script.google.com/macros/s/AKfy.../exec)               ║
-║                                                                      ║
-║  STEP 4 — Paste URL below                                            ║
-║    • Find the line: var GAS_URL = 'YOUR_...'                         ║
-║    • Replace the placeholder with your copied URL                    ║
-║    • Save the HTML file — you're done! ✅                            ║
-║                                                                      ║
-║  ⚠️  IMPORTANT: Every time you modify the Apps Script code,          ║
-║      you must create a NEW deployment (not update existing).         ║
-║      Only new deployments pick up code changes in GAS.               ║
-║                                                                      ║
-╠══════════════════════════════════════════════════════════════════════╣
-║                  APPS SCRIPT CODE — COPY BELOW                       ║
-╠══════════════════════════════════════════════════════════════════════╣
+============================================================================
+   GOOGLE SHEETS SETUP — DO THIS ONCE
+============================================================================
+ STEP 1 — Create a Google Sheet at sheets.google.com.
+          Copy its ID from the URL:
+          docs.google.com/spreadsheets/d/THIS_IS_THE_ID/edit
+ STEP 2 — In the sheet: Extensions -> Apps Script. Delete all code,
+          paste the Apps Script below, set SHEET_ID to your sheet's ID,
+          then Save (Ctrl+S).
+ STEP 3 — Deploy -> New Deployment -> type "Web App".
+          Execute as: Me.  Who has access: Anyone.  Deploy + authorize.
+          Copy the Web App URL that ends in /exec.
+ STEP 4 — Paste that URL into  var GAS_URL = '...'  below, save this file.
+
+ NOTE: Every time you change the Apps Script code you must create a NEW
+       deployment (not "manage/update existing") and paste the new /exec URL,
+       because only new deployments pick up code changes.
+
+ The Apps Script below is identical to the Code.gs file shipped with this
+ HTML. Keep them in sync.
+----------------------------------------------------------------------------
+ APPS SCRIPT (copy everything between the lines into the Apps Script editor)
+----------------------------------------------------------------------------
+var SHEET_ID = 'PUT_YOUR_GOOGLE_SHEET_ID_HERE';
+var SHEET_NAME = 'data';
 
 function doGet(e) {
   var lock = LockService.getScriptLock();
-  lock.tryLock(5000);
+  try { lock.waitLock(8000); } catch (err) {}
   try {
-    var action = e.parameter.action;
-    if (action === 'getAll') return out(getAllData());
-    if (action === 'ping')   return out({ status: 'ok', time: new Date().toISOString() });
-    return out({ error: 'Unknown action' });
-  } finally { lock.releaseLock(); }
+    var action = (e && e.parameter && e.parameter.action) || '';
+    if (action === 'ping')   return out({ ok: true, time: new Date().toISOString() });
+    if (action === 'getAll') return out({ ok: true, data: getAllData() });
+    return out({ ok: false, error: 'Unknown action' });
+  } catch (err) { return out({ ok: false, error: String(err) }); }
+  finally { try { lock.releaseLock(); } catch (e2) {} }
 }
 
 function doPost(e) {
   var lock = LockService.getScriptLock();
-  lock.tryLock(10000);
+  try { lock.waitLock(15000); } catch (err) {}
   try {
-    var d = JSON.parse(e.postData.contents);
-    if (d.action === 'set')      return out(setKey(d.key, d.value));
-    if (d.action === 'delete')   return out(deleteKey(d.key));
-    if (d.action === 'setBatch') return out(setBatch(d.pairs));
-    return out({ error: 'Unknown action' });
-  } finally { lock.releaseLock(); }
+    var body = JSON.parse(e.postData.contents);
+    if (body.action === 'set')      return out(setKey(body.sheet, body.key, body.value));
+    if (body.action === 'delete')   return out(deleteKey(body.sheet, body.key));
+    if (body.action === 'setBatch') return out(setBatch(body.sheet, body.pairs));
+    return out({ ok: false, error: 'Unknown action' });
+  } catch (err) { return out({ ok: false, error: String(err) }); }
+  finally { try { lock.releaseLock(); } catch (e2) {} }
 }
 
-function out(data) {
-  return ContentService.createTextOutput(JSON.stringify(data))
+function out(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-function getSheet() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName('AppData');
+function getSheet(name) {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sheet = ss.getSheetByName(name || SHEET_NAME);
   if (!sheet) {
-    sheet = ss.insertSheet('AppData');
+    sheet = ss.insertSheet(name || SHEET_NAME);
     sheet.getRange(1, 1, 1, 3).setValues([['Key', 'Value', 'Last Updated']]);
     sheet.setFrozenRows(1);
-    sheet.setColumnWidth(1, 280);
-    sheet.setColumnWidth(2, 700);
-    sheet.setColumnWidth(3, 180);
+    sheet.setColumnWidth(1, 320); sheet.setColumnWidth(2, 720); sheet.setColumnWidth(3, 190);
   }
   return sheet;
 }
 
 function getAllData() {
-  var sheet = getSheet();
-  var rows = sheet.getDataRange().getValues();
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sheets = ss.getSheets();
   var result = {};
-  for (var i = 1; i < rows.length; i++) {
-    if (!rows[i][0]) continue;
-    try { result[rows[i][0]] = JSON.parse(rows[i][1]); }
-    catch (e) { result[rows[i][0]] = rows[i][1]; }
+  for (var s = 0; s < sheets.length; s++) {
+    var rows = sheets[s].getDataRange().getValues();
+    for (var r = 1; r < rows.length; r++) {
+      var key = rows[r][0];
+      if (key === '' || key === null) continue;
+      try { result[key] = JSON.parse(rows[r][1]); } catch (e) { result[key] = rows[r][1]; }
+    }
   }
   return result;
 }
 
-function setKey(key, value) {
-  var sheet = getSheet();
-  var rows = sheet.getDataRange().getValues();
+function setKey(sheetName, key, value) {
+  var sheet = getSheet(sheetName);
   var val = JSON.stringify(value);
   var now = new Date().toISOString();
-  for (var i = 1; i < rows.length; i++) {
-    if (rows[i][0] === key) {
-      sheet.getRange(i + 1, 2, 1, 2).setValues([[val, now]]);
-      return { success: true };
-    }
+  var rows = sheet.getDataRange().getValues();
+  for (var r = 1; r < rows.length; r++) {
+    if (rows[r][0] === key) { sheet.getRange(r + 1, 2, 1, 2).setValues([[val, now]]); return { ok: true }; }
   }
   sheet.appendRow([key, val, now]);
-  return { success: true };
+  return { ok: true };
 }
 
-function deleteKey(key) {
-  var sheet = getSheet();
+function deleteKey(sheetName, key) {
+  var sheet = getSheet(sheetName);
   var rows = sheet.getDataRange().getValues();
-  for (var i = 1; i < rows.length; i++) {
-    if (rows[i][0] === key) {
-      sheet.deleteRow(i + 1);
-      return { success: true };
-    }
+  for (var r = 1; r < rows.length; r++) {
+    if (rows[r][0] === key) { sheet.deleteRow(r + 1); return { ok: true }; }
   }
-  return { success: true };
+  return { ok: true };
 }
 
-function setBatch(pairs) {
-  var keys = Object.keys(pairs);
-  for (var i = 0; i < keys.length; i++) setKey(keys[i], pairs[keys[i]]);
-  return { success: true, count: keys.length };
+function setBatch(sheetName, pairs) {
+  var keys = Object.keys(pairs || {});
+  for (var i = 0; i < keys.length; i++) setKey(sheetName, keys[i], pairs[keys[i]]);
+  return { ok: true, count: keys.length };
 }
-
-╠══════════════════════════════════════════════════════════════════════╣
-║                    END OF APPS SCRIPT CODE                           ║
-╚══════════════════════════════════════════════════════════════════════╝
+----------------------------------------------------------------------------
+ END OF APPS SCRIPT
+============================================================================
 */
 
-// ════════════════════════════════════════════════════════════
-//  ★ PASTE YOUR APPS SCRIPT WEB APP URL BELOW ★
-// ════════════════════════════════════════════════════════════
+// === PASTE YOUR APPS SCRIPT WEB APP URL BELOW ===
 var GAS_URL = 'https://script.google.com/macros/s/AKfycbylqCRNDucOPMksDCZlzbZX7v9tybC1kB0OJZAE3CsxRyIRmpzj38_Nj7SILYGRKrIB/exec';
-// ════════════════════════════════════════════════════════════
+// ================================================
 
 // ── In-Memory Database ──────────────────────────────────────
-var DB = {};          // All app data lives here after initial load
+var DB = {};
 var DB_LOADED = false;
 var GAS_ENABLED = false;
 
@@ -715,11 +752,9 @@ function isGASConfigured() {
 
 async function loadAllData() {
   if (!isGASConfigured()) {
-    // No GAS — fall back to localStorage entirely
-    DB_LOADED = true;
-    GAS_ENABLED = false;
+    DB_LOADED = true; GAS_ENABLED = false;
     setSyncStatus('local');
-    setLoadingMsg('Using local storage (GAS not configured)');
+    setLoadingMsg('Using local storage (Google Sheets not configured)');
     return;
   }
   GAS_ENABLED = true;
@@ -729,84 +764,91 @@ async function loadAllData() {
     var res = await fetch(GAS_URL + '?action=getAll', { method:'GET', redirect:'follow', cache:'no-cache' });
     var json = await res.json();
     DB = (json && json.ok && json.data) ? json.data : {};
-    // Mirror into localStorage as offline cache
-    Object.keys(DB).forEach(function(k) {
-      try { localStorage.setItem(k, JSON.stringify(DB[k])); } catch(e) {}
-    });
+    Object.keys(DB).forEach(function(k) { try { localStorage.setItem(k, JSON.stringify(DB[k])); } catch(e) {} });
     DB_LOADED = true;
     setSyncStatus('synced');
     setLoadingMsg('Loaded successfully ✓');
   } catch (err) {
     console.warn('[GAS] Load failed, falling back to localStorage:', err);
-    // Fall back to localStorage cache silently
     DB_LOADED = true;
     setSyncStatus('error');
     setLoadingMsg('Could not reach Google Sheets — using cached data');
-    // Small delay so user can read the message
     await new Promise(function(r){ setTimeout(r, 1200); });
   }
 }
 
-// ── DB Read ─────────────────────────────────────────────────
+// Manual refresh (re-pull DB from Google Sheets) — triggered by the sync chip.
+async function refreshData() {
+  if (!GAS_ENABLED) { showToast('Local-only mode — nothing to refresh','info'); return; }
+  setSyncStatus('syncing');
+  try {
+    var res = await fetch(GAS_URL + '?action=getAll', { method:'GET', redirect:'follow', cache:'no-cache' });
+    var json = await res.json();
+    if (json && json.ok && json.data) {
+      DB = json.data;
+      Object.keys(DB).forEach(function(k){ try { localStorage.setItem(k, JSON.stringify(DB[k])); } catch(e){} });
+      setSyncStatus('synced');
+      showToast('Refreshed from Google Sheets ✓','success');
+      EMPS = getEmps();
+      refreshCurrentView();
+    } else { setSyncStatus('error'); showToast('Refresh failed','error'); }
+  } catch (err) {
+    setSyncStatus('error'); showToast('Could not reach Google Sheets','error');
+  }
+}
+
+// Re-render whatever the user is currently looking at, after a refresh.
+function refreshCurrentView() {
+  if (!cu) return;
+  if (document.getElementById('access-sec').style.display === 'block') { renderAccessTable(); return; }
+  if (document.getElementById('rankings-sec').style.display === 'block') { renderRankings(); return; }
+  if (document.getElementById('toppers-sec').style.display === 'block') { renderToppers(); return; }
+  if (document.getElementById('graphs-sec').style.display === 'block') { renderGraph(); renderTeamChart(); return; }
+  if (cu.role === 'viewer') { renderMyRatings(); return; }
+  if (cEmp !== null) { buildForm(cEmp); }
+  else if (cWeek !== null) { initEmpGrid(); }
+  else if (cMonth === null) { initMonths(); }
+}
+
+// ── DB Read / Write / Delete ─────────────────────────────────
 function dbGet(k) {
-  // If GAS loaded, DB is source of truth; else fall back to localStorage
   if (DB_LOADED && DB.hasOwnProperty(k)) return DB[k];
   try { var v = localStorage.getItem(k); return v !== null ? JSON.parse(v) : null; } catch(e) { return null; }
 }
 
-// ── DB Write (updates memory + localStorage + syncs to GAS) ─
 function dbSet(k, v) {
   DB[k] = v;
   try { localStorage.setItem(k, JSON.stringify(v)); } catch(e) {}
   if (GAS_ENABLED) {
     setSyncStatus('syncing');
-    // mode:'no-cors' bypasses the CORS/redirect issue GAS has with POST.
-    // The request IS sent and GAS writes it — we just can't read the opaque response.
     fetch(GAS_URL, {
-      method: 'POST',
-      mode: 'no-cors',
+      method: 'POST', mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({ action: 'set', sheet: 'data', key: k, value: v })
     })
-    .then(function() {
-      setSyncStatus('synced'); // response is opaque — optimistically mark synced
-    })
-    .catch(function() {
-      setSyncStatus('error');
-      showToast('⚠️ Could not sync to Google Sheets', 'error');
-    });
+    .then(function() { setSyncStatus('synced'); })
+    .catch(function() { setSyncStatus('error'); showToast('⚠️ Could not sync to Google Sheets', 'error'); });
   }
 }
 
-// ── DB Delete ────────────────────────────────────────────────
 function dbDelete(k) {
   delete DB[k];
   try { localStorage.removeItem(k); } catch(e) {}
   if (GAS_ENABLED) {
     setSyncStatus('syncing');
     fetch(GAS_URL, {
-      method: 'POST',
-      mode: 'no-cors',
+      method: 'POST', mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({ action: 'delete', sheet: 'data', key: k })
     })
-    .then(function() {
-      setSyncStatus('synced');
-    })
-    .catch(function() {
-      setSyncStatus('error');
-      showToast('⚠️ Could not sync deletion to Google Sheets', 'error');
-    });
+    .then(function() { setSyncStatus('synced'); })
+    .catch(function() { setSyncStatus('error'); showToast('⚠️ Could not sync deletion to Google Sheets', 'error'); });
   }
 }
 
-// ── Photos stay LOCAL ONLY (base64 is too large for Sheets) ─
-function lsGetLocal(k) {
-  try { var v = localStorage.getItem(k); return v !== null ? JSON.parse(v) : null; } catch(e) { return null; }
-}
-function lsSetLocal(k, v) {
-  try { localStorage.setItem(k, JSON.stringify(v)); } catch(e) {}
-}
+// Photos stay LOCAL ONLY (base64 too large for Sheets cells).
+function lsGetLocal(k) { try { var v = localStorage.getItem(k); return v !== null ? JSON.parse(v) : null; } catch(e) { return null; } }
+function lsSetLocal(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e) {} }
 
 // ── Sync Status UI ───────────────────────────────────────────
 function setSyncStatus(status) {
@@ -823,17 +865,11 @@ function setSyncStatus(status) {
   dot.className = s.cls;
   text.textContent = s.label;
 }
+function setLoadingMsg(msg) { var el = document.getElementById('loading-msg'); if (el) el.textContent = msg; }
 
-function setLoadingMsg(msg) {
-  var el = document.getElementById('loading-msg');
-  if (el) el.textContent = msg;
-}
-
-// ── Replaced storage primitives ──────────────────────────────
+// ── Storage primitives + app helpers ─────────────────────────
 function lsGet(k)   { return dbGet(k); }
 function lsSet(k,v) { dbSet(k, v); }
-
-// ── App-level helpers that use storage ───────────────────────
 function getMap()   { return lsGet('access_map') || {}; }
 function setMap(m)  { lsSet('access_map', m); }
 function getEmps()  { return lsGet('employee_list') || DEFAULT_EMPS; }
@@ -856,21 +892,20 @@ var DEFAULT_EMPS = [
 var EMPS = DEFAULT_EMPS;
 
 var KPI_DEFS = [
-  { key:'quality',       name:'Quality',                      desc:'How good and correct your replies are.',                         target:'90%',          unit:'%',       targetNum:90  },
-  { key:'sla',           name:'SLA (Timely Response)',         desc:'Replying to customers on time.',                                 target:'100%',         unit:'%',       targetNum:100 },
-  { key:'csat',          name:'CSAT (Customer Satisfaction)',  desc:'Rating given by the customer after support.',                    target:'85%',          unit:'%',       targetNum:85  },
-  { key:'csat_response', name:'CSAT Survey Response Rate',     desc:'% of customers who actually respond to the CSAT survey.',       target:'Chat/Email: 25–35%+, Call: 35%+', unit:'%', targetNum:25 },
-  { key:'fr',            name:'First Response (FR)',           desc:'How fast you send the first reply.',                             target:'100%',         unit:'%',       targetNum:100 },
-  { key:'aht',           name:'AHT (Avg Handling Time)',       desc:'Time you take to handle one chat.',                              target:'3 mins/chat',  unit:'mins',    targetNum:3   },
-  { key:'occupancy',     name:'Occupancy',                     desc:'How active and busy you are during work time.',                  target:'85%',          unit:'%',       targetNum:85  },
-  { key:'reopen',        name:'Reopen Count',                  desc:'When a customer comes back for the same issue.',                 target:'0%',           unit:'%',       targetNum:0   },
-  { key:'shrinkage',     name:'Shrinkage',                     desc:'Time not available (leaves, breaks, etc.).',                    target:'Keep it low',  unit:'%',       targetNum:null},
-  { key:'chat_target',   name:'Chat/Mail Target',              desc:'Number of chats/mail you need to reply to.',                    target:'120/day',      unit:'/day',    targetNum:120 },
-  { key:'call_target',   name:'Call Target',                   desc:'Number of calls you need to make/receive.',                     target:'100/day',      unit:'/day',    targetNum:100 },
-  { key:'disposition',   name:'Disposition Accuracy',          desc:'Select correctly relevant disposition values.',                  target:'100%',         unit:'%',       targetNum:100 },
-  { key:'followup',      name:'Follow-up',                     desc:'Follow up to resolve the CX pending query.',                    target:'100%',         unit:'%',       targetNum:100 }
+  { key:'quality',       name:'Quality',                      desc:'How good and correct your replies are.',                 target:'90%',          unit:'%',    targetNum:90  },
+  { key:'sla',           name:'SLA (Timely Response)',         desc:'Replying to customers on time.',                         target:'100%',         unit:'%',    targetNum:100 },
+  { key:'csat',          name:'CSAT (Customer Satisfaction)',  desc:'Rating given by the customer after support.',            target:'85%',          unit:'%',    targetNum:85  },
+  { key:'csat_response', name:'CSAT Survey Response Rate',     desc:'% of customers who respond to the CSAT survey.',         target:'Chat/Email: 25–35%+, Call: 35%+', unit:'%', targetNum:25 },
+  { key:'fr',            name:'First Response (FR)',           desc:'How fast you send the first reply.',                     target:'100%',         unit:'%',    targetNum:100 },
+  { key:'aht',           name:'AHT (Avg Handling Time)',       desc:'Time you take to handle one chat.',                      target:'3 mins/chat',  unit:'mins', targetNum:3   },
+  { key:'occupancy',     name:'Occupancy',                     desc:'How active and busy you are during work time.',          target:'85%',          unit:'%',    targetNum:85  },
+  { key:'reopen',        name:'Reopen Count',                  desc:'When a customer comes back for the same issue.',         target:'0%',           unit:'%',    targetNum:0   },
+  { key:'shrinkage',     name:'Shrinkage',                     desc:'Time not available (leaves, breaks, etc.).',             target:'Keep it low',  unit:'%',    targetNum:null},
+  { key:'chat_target',   name:'Chat/Mail Target',              desc:'Number of chats/mail you need to reply to.',             target:'120/day',      unit:'/day', targetNum:120 },
+  { key:'call_target',   name:'Call Target',                   desc:'Number of calls you need to make/receive.',              target:'100/day',      unit:'/day', targetNum:100 },
+  { key:'disposition',   name:'Disposition Accuracy',          desc:'Select correctly relevant disposition values.',          target:'100%',         unit:'%',    targetNum:100 },
+  { key:'followup',      name:'Follow-up',                     desc:'Follow up to resolve the CX pending query.',             target:'100%',         unit:'%',    targetNum:100 }
 ];
-
 var curKPI = {};
 
 var CRITERIA = [
@@ -882,22 +917,21 @@ var CRITERIA = [
   'Proactiveness'
 ];
 
+// ── Admin (manager) accounts — base64-obfuscated so source isn't plain at a glance ──
 var ADMINS = [
-  { email: atob('cHJpeWFua2Euc2luZ2hAaG91c2VvZmVkdGVjaC5pbg=='), pass: atob('dlREeDVEbUV0QTVKaDRGdQ=='), name: 'Priyanka Singh' },
-  { email: atob('YXpoYXJ1bC5pc2xhbUBob3VzZW9mZWR0ZWNoLmlu'),     pass: atob('LksxWFVHNXRoR0R0WDk5NA=='), name: 'Azharul Islam' },
-  { email: atob('YWJoaXVkYXkuYmFnaGVsQGhvdXNlb2ZlZHRlY2guaW4='),  pass: atob('VFlPNV5vVVZ4YVBdZVt5ag=='), name: 'Abhiuday Baghel' },
-  { email: atob('YXJjaGFuYS50cmlwYXRoaUBob3VzZW9mZWR0ZWNoLmlu'),  pass: atob('WmNLN2NUYWM2UzZhTFg2Rw=='), name: 'Archana Tripathi' }
+  { email: atob('cHJpeWFua2Euc2luZ2hAaG91c2VvZmVkdGVjaC5pbg=='), pass: atob('NWMwcEw3dlA5bFVGSEFGZw=='), name: 'Priyanka Singh' },
+  { email: atob('YXJjaGFuYS50cmlwYXRoaUBob3VzZW9mZWR0ZWNoLmlu'), pass: atob('Z0FNWXhuenN3N2pWOGFvNQ=='), name: 'Archana Tripathi' },
+  { email: atob('YWJoaXVkYXkuYmFnaGVsQGhvdXNlb2ZlZHRlY2guaW4='), pass: atob('aVlwdmF4UFRPRlhIZXFjZw=='), name: 'Abhiuday Baghel' },
+  { email: atob('YXpoYXJ1bC5pc2xhbUBob3VzZW9mZWR0ZWNoLmlu'), pass: atob('Y1FtZjNZcXlPN2tkb0cxUg=='), name: 'Azharul Islam' }
 ];
-var EP = atob('ZW1wbG95ZWUxMjM=');
+var EP = atob('ZW1wbG95ZWUxMjM=');   // default fallback password "employee123"
 
 var cu = null, cMonth = null, cWeek = null, cEmp = null, viewOnly = false;
 
 // ── KPI Functions ─────────────────────────────────────────────
 function toggleKPI() {
-  var btn = document.getElementById('kpi-toggle-btn');
-  var body = document.getElementById('kpi-body');
-  btn.classList.toggle('open');
-  body.classList.toggle('open');
+  document.getElementById('kpi-toggle-btn').classList.toggle('open');
+  document.getElementById('kpi-body').classList.toggle('open');
 }
 
 function buildKPITable(savedKPI, readOnly) {
@@ -951,7 +985,8 @@ function updateKPI(key, val) {
 }
 
 // ── Utils ─────────────────────────────────────────────────────
-function initials(n) { var p=n.trim().split(/\s+/); var r=''; for(var i=0;i<Math.min(2,p.length);i++) r+=p[i][0]; return r.toUpperCase(); }
+function initials(n) { var p=(n||'').trim().split(/\s+/); var r=''; for(var i=0;i<Math.min(2,p.length);i++) r+=(p[i][0]||''); return r.toUpperCase()||'?'; }
+function normTok(s) { return (s||'').toLowerCase().replace(/[^a-z0-9]/g,''); }
 function showToast(msg,type) {
   var t=document.getElementById('toast');
   t.textContent=msg; t.className='toast '+(type||'success')+' show';
@@ -964,13 +999,11 @@ function doLogin() {
   var emailEl = document.getElementById('lemail');
   var passEl  = document.getElementById('lpass');
   var errEl   = document.getElementById('lerr');
-  var btn     = document.getElementById('login-btn');
   if(!emailEl||!passEl) return;
   var email = emailEl.value.trim().toLowerCase();
   var pass  = passEl.value.trim();
   errEl.style.display = 'none';
   if(!email||!pass) { errEl.textContent='Please enter your email and password.'; errEl.style.display='block'; return; }
-
   for(var ai=0;ai<ADMINS.length;ai++) {
     if(email===ADMINS[ai].email.toLowerCase() && pass===ADMINS[ai].pass) {
       cu = { email:email, role:'manager', empName:null, adminName:ADMINS[ai].name };
@@ -1007,7 +1040,13 @@ function startApp() {
     document.getElementById('htabs-viewer').style.display='flex';
   }
   cMonth=null; cWeek=null; cEmp=null;
-  initMonths(); showPage('pg-months'); updateBC();
+  if(cu.role==='viewer') {
+    // Employees see the consolidated, read-only view of all their ratings.
+    renderMyRatings();
+    showPage('pg-myratings');
+  } else {
+    initMonths(); showPage('pg-months'); updateBC();
+  }
 }
 
 function doLogout() {
@@ -1063,7 +1102,8 @@ function switchTab(tab) {
   } else {
     document.getElementById('ratings-sec').style.display='block';
     cMonth=null; cWeek=null; cEmp=null;
-    initMonths(); showPage('pg-months'); updateBC();
+    if(cu.role==='viewer') { renderMyRatings(); showPage('pg-myratings'); }
+    else { initMonths(); showPage('pg-months'); updateBC(); }
   }
 }
 
@@ -1234,13 +1274,12 @@ function undoRating() {
 function deleteRating() {
   if(cu.role!=='manager') return;
   if(!confirm('Are you sure you want to delete this rating? This cannot be undone.')) return;
-  // ★ dbDelete removes from DB, localStorage, AND Google Sheets
   dbDelete('r26_'+cMonth+'_w'+cWeek+'_'+cEmp);
   showToast('Rating deleted','info');
   setTimeout(function(){ initEmpGrid(); goToWeek(); },1000);
 }
 
-// ── My Ratings (Viewer) ───────────────────────────────────────
+// ── My Ratings (consolidated viewer dashboard) ────────────────
 function renderMyRatings() {
   var emp=cu.empName, el=document.getElementById('myratings-content');
   var html='<div style="display:flex;align-items:center;gap:16px;margin-bottom:24px"><div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--accent3),var(--accent));display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-size:20px;font-weight:800">'+initials(emp)+'</div><div><div style="font-family:Syne,sans-serif;font-size:20px;font-weight:800">'+emp+'</div><div style="font-size:13px;color:var(--muted);margin-top:3px">Your Performance Ratings — 2026</div></div></div>';
@@ -1260,7 +1299,7 @@ function renderMyRatings() {
         mhtml+='<div class="wacc"><div class="wah" onclick="this.nextElementSibling.classList.toggle(\'open\')"><h5>Week '+w+'</h5><div style="display:flex;align-items:center;gap:8px"><span class="avgb">Avg: '+r.avg+'</span><span style="color:var(--muted);font-size:12px">▼</span></div></div><div class="wab">'+rows+(r.comment?'<div style="margin-top:10px;padding:9px;background:var(--bg);border-radius:8px;font-size:12px;color:var(--muted);font-style:italic">"'+r.comment+'"</div>':'')+'</div></div>';
       }
     }
-    if(mhas) { any=true; html+='<div class="macc"><div class="mah" onclick="this.nextElementSibling.classList.toggle(\'open\')"><h4>'+MONTHS[mi]+' 2026</h4><span>▼</span></div><div class="mab">'+mhtml+'</div></div>'; }
+    if(mhas) { html+='<div class="macc"><div class="mah" onclick="this.nextElementSibling.classList.toggle(\'open\')"><h4>'+MONTHS[mi]+' 2026</h4><span>▼</span></div><div class="mab">'+mhtml+'</div></div>'; }
   }
   if(!any) html+='<div class="empty" style="margin-top:32px"><div style="font-size:40px;margin-bottom:12px">📋</div><div>No ratings submitted for you yet.</div><div style="font-size:12px;margin-top:6px">Check back after your manager completes the weekly review.</div></div>';
   el.innerHTML=html;
@@ -1395,6 +1434,146 @@ function updateEmp(emp,idx) {
   showToast('Credentials updated for '+emp+' ✓','success'); renderAccessTable();
 }
 
+// ── Bulk Credential CSV Upload ────────────────────────────────
+// Tiny RFC-ish CSV parser: handles quotes, escaped quotes, commas, CRLF.
+function parseCSV(text) {
+  var rows=[], row=[], cur='', i=0, inQ=false;
+  text=String(text).replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+  while(i<text.length) {
+    var c=text[i];
+    if(inQ) {
+      if(c==='"') { if(text[i+1]==='"'){ cur+='"'; i+=2; continue; } inQ=false; i++; continue; }
+      cur+=c; i++; continue;
+    } else {
+      if(c==='"') { inQ=true; i++; continue; }
+      if(c===',') { row.push(cur); cur=''; i++; continue; }
+      if(c==='\n') { row.push(cur); rows.push(row); row=[]; cur=''; i++; continue; }
+      cur+=c; i++; continue;
+    }
+  }
+  row.push(cur); rows.push(row);
+  return rows.filter(function(r){ return r.some(function(x){ return (x||'').trim()!==''; }); });
+}
+
+function downloadCredTemplate() {
+  EMPS=getEmps();
+  var a=EMPS[0]||'Employee One', b=EMPS[1]||'Employee Two';
+  var lines=['email,password,name',
+    normTok(a)+'@houseofedtech.in,ChangeMe123,'+a,
+    normTok(b)+'@houseofedtech.in,ChangeMe456,'+b];
+  var blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8;'});
+  var url=URL.createObjectURL(blob);
+  var el=document.createElement('a'); el.href=url; el.download='credentials_template.csv'; el.style.display='none';
+  document.body.appendChild(el); el.click(); document.body.removeChild(el); URL.revokeObjectURL(url);
+  showToast('Template downloaded ✓','success');
+}
+
+function applyCredentialCSV() {
+  if(cu.role!=='manager') return;
+  var input=document.getElementById('csv-file');
+  if(!input||!input.files||!input.files[0]) { showToast('Choose a CSV file first','error'); return; }
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var rows=parseCSV(e.target.result);
+    if(!rows.length) { showToast('CSV is empty','error'); return; }
+    var first=rows[0].map(function(x){ return (x||'').trim().toLowerCase(); });
+    var hasHeader = first[0] && first[0].indexOf('@')===-1 &&
+      (/mail/.test(first[0]) || /pass/.test(first[1]||'') || /name/.test(first[2]||''));
+    var dataRows = hasHeader ? rows.slice(1) : rows;
+    processCredentialRows(dataRows);
+    input.value='';
+    document.getElementById('csv-file-label').textContent='📄 Choose CSV file…';
+    document.getElementById('csv-drop').classList.remove('has-file');
+  };
+  reader.onerror=function(){ showToast('Could not read file','error'); };
+  reader.readAsText(input.files[0]);
+}
+
+function processCredentialRows(dataRows) {
+  EMPS=getEmps();
+  var map=getMap();
+  var adminEmails=ADMINS.map(function(a){ return a.email.toLowerCase(); });
+  var applied=[], created=[], skipped=[];
+
+  function empByEmail(email) {
+    var keys=Object.keys(map);
+    for(var i=0;i<keys.length;i++) {
+      var rec=map[keys[i]];
+      var e=typeof rec==='string'?rec:(rec&&rec.email?rec.email:'');
+      if(e.toLowerCase().trim()===email) return keys[i];
+    }
+    return null;
+  }
+  function empByName(name) {
+    for(var i=0;i<EMPS.length;i++) if(EMPS[i].toLowerCase()===name.toLowerCase()) return EMPS[i];
+    return null;
+  }
+  function empByLocalPart(email) {
+    var local=normTok(email.split('@')[0]); if(!local) return null;
+    var matches=[];
+    for(var i=0;i<EMPS.length;i++) if(normTok(EMPS[i])===local) matches.push(EMPS[i]);
+    return matches.length===1?matches[0]:null;
+  }
+
+  for(var r=0;r<dataRows.length;r++) {
+    var cells=dataRows[r].map(function(x){ return (x||'').trim(); });
+    var rowNo=r+1;
+    var email='';
+    for(var c=0;c<cells.length;c++) { if(cells[c].indexOf('@')!==-1) { email=cells[c].toLowerCase(); break; } }
+    var pass='';
+    if(cells[0] && cells[0].indexOf('@')!==-1) { pass=cells[1]||''; }
+    else { for(var c2=0;c2<cells.length;c2++) { if(cells[c2]!=='' && cells[c2].indexOf('@')===-1) { pass=cells[c2]; break; } } }
+    var name='';
+    for(var c3=0;c3<cells.length;c3++) { if(cells[c3]!=='' && cells[c3].indexOf('@')===-1 && cells[c3]!==pass) { name=cells[c3]; break; } }
+
+    if(!email || email.indexOf('@')===-1) { skipped.push({row:rowNo, email:cells.join(' | '), reason:'no valid email'}); continue; }
+    if(!pass) { skipped.push({row:rowNo, email:email, reason:'no password'}); continue; }
+    if(adminEmails.indexOf(email)!==-1) { skipped.push({row:rowNo, email:email, reason:'admin email — not allowed'}); continue; }
+
+    var target=null;
+    if(name) { target=empByName(name); if(!target) { EMPS.push(name); created.push(name); target=name; } }
+    if(!target) target=empByEmail(email);
+    if(!target) target=empByLocalPart(email);
+    if(!target) { skipped.push({row:rowNo, email:email, reason:'no matching employee (add a 3rd name column)'}); continue; }
+
+    var owner=empByEmail(email);
+    if(owner && owner!==target) delete map[owner];   // move email to the intended employee
+    map[target]={ email:email, pass:pass };
+    applied.push(target);
+  }
+
+  setMap(map);
+  if(created.length) saveEmps(EMPS);
+  renderAccessTable();
+
+  var uniq=function(a){ return a.filter(function(v,i){ return a.indexOf(v)===i; }); };
+  applied=uniq(applied); created=uniq(created);
+  function chip(t,col){ return '<span style="display:inline-flex;align-items:center;gap:6px;background:'+col+'22;border:1px solid '+col+'66;color:'+col+';border-radius:20px;padding:4px 12px;font-weight:600;">'+t+'</span>'; }
+  var html='<div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;font-size:13px;">';
+  html+='<div style="font-family:Syne,sans-serif;font-weight:700;margin-bottom:10px;">Upload Result</div>';
+  html+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:'+(skipped.length||created.length?'12px':'0')+';">';
+  html+=chip(applied.length+' login'+(applied.length===1?'':'s')+' set','#38ef7d');
+  if(created.length) html+=chip(created.length+' new employee'+(created.length===1?'':'s')+' added','#7c6fff');
+  if(skipped.length) html+=chip(skipped.length+' row'+(skipped.length===1?'':'s')+' skipped','#ff4d6d');
+  html+='</div>';
+  if(created.length) html+='<div style="color:var(--muted);margin-bottom:8px;"><strong style="color:var(--accent)">New employees:</strong> '+created.join(', ')+'</div>';
+  if(skipped.length) {
+    html+='<table style="width:100%;border-collapse:collapse;margin-top:6px;"><thead><tr>'
+      +'<th style="text-align:left;font-size:11px;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--border);">Row</th>'
+      +'<th style="text-align:left;font-size:11px;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--border);">Email</th>'
+      +'<th style="text-align:left;font-size:11px;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--border);">Why skipped</th></tr></thead><tbody>';
+    for(var si=0;si<skipped.length;si++) {
+      html+='<tr><td style="padding:4px 6px;color:var(--muted);">'+skipped[si].row+'</td>'
+        +'<td style="padding:4px 6px;color:var(--text);word-break:break-all;">'+(skipped[si].email||'—')+'</td>'
+        +'<td style="padding:4px 6px;color:var(--danger);">'+skipped[si].reason+'</td></tr>';
+    }
+    html+='</tbody></table>';
+  }
+  html+='</div>';
+  var rd=document.getElementById('csv-result'); rd.style.display='block'; rd.innerHTML=html;
+  showToast(applied.length+' login(s) updated'+(created.length?', '+created.length+' added':'')+(skipped.length?', '+skipped.length+' skipped':'')+' ✓', skipped.length?'info':'success');
+}
+
 // ── Rankings ──────────────────────────────────────────────────
 function getMonthAvg(emp,monthIdx) {
   var total=0,count=0;
@@ -1445,179 +1624,246 @@ function renderRankings() {
 }
 
 // ── Top Performers ────────────────────────────────────────────
-function getPhotoKey(emp,monthIdx) { return 'photo_'+monthIdx+'_'+emp.replace(/\s+/g,'_'); }
+function getPhotoKey(emp) { return 'photo_'+emp; }
+
 function renderToppers() {
   EMPS=getEmps();
   var el=document.getElementById('toppers-content'); if(!el) return;
-  var html='';
+  var isManager=cu.role==='manager';
+  var medals=['🥇','🥈','🥉'];
+  var medalColors=['linear-gradient(135deg,#FFD700,#FFA500)','linear-gradient(135deg,#C0C0C0,#A0A0A0)','linear-gradient(135deg,#CD7F32,#8B4513)'];
+  var html='', any=false;
   for(var mi=0;mi<MONTHS.length;mi++) {
-    var list=getRankedList(mi).filter(function(l){return l.avg!==null;});
-    if(list.length===0) continue;
-    var top3=list.slice(0,3);
-    var medals=['🥇','🥈','🥉'], medalLabels=['1st Place','2nd Place','3rd Place'];
-    var medalGrad=['linear-gradient(135deg,#FFD700,#FFA500)','linear-gradient(135deg,#C0C0C0,#808080)','linear-gradient(135deg,#CD7F32,#8B4513)'];
-    var medalBg=['rgba(255,215,0,0.08)','rgba(192,192,192,0.06)','rgba(205,127,50,0.06)'];
-    var medalBorder=['rgba(255,215,0,0.25)','rgba(192,192,192,0.2)','rgba(205,127,50,0.2)'];
-    html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px;margin-bottom:20px;">';
-    html+='<div style="font-family:Syne,sans-serif;font-size:18px;font-weight:800;margin-bottom:4px;">'+MONTHS[mi]+' 2026</div>';
-    html+='<div style="font-size:13px;color:var(--muted);margin-bottom:20px;">Top performers based on monthly average</div>';
-    html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;">';
-    for(var t=0;t<top3.length;t++) {
-      var emp=top3[t].name, avg=top3[t].avg;
-      var photoKey=getPhotoKey(emp,mi);
-      // Photos are local-only (base64 too large for Sheets)
-      var photo=lsGetLocal(photoKey);
-      var photoHtml=photo?'<img src="'+photo+'" style="width:80px;height:80px;border-radius:50%;object-fit:cover;" />'
-        :'<div style="width:80px;height:80px;border-radius:50%;background:'+medalGrad[t]+';display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-size:24px;font-weight:800;color:white;">'+initials(emp)+'</div>';
-      html+='<div style="background:'+medalBg[t]+';border:1px solid '+medalBorder[t]+';border-radius:16px;padding:20px;text-align:center;">'
-        +'<div style="font-size:28px;margin-bottom:12px;">'+medals[t]+'</div>'
-        +'<div style="display:flex;justify-content:center;margin-bottom:12px;">'+photoHtml+'</div>'
-        +'<div style="font-family:Syne,sans-serif;font-size:15px;font-weight:800;margin-bottom:4px;">'+emp+'</div>'
-        +'<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">'+medalLabels[t]+'</div>'
-        +'<div style="font-size:24px;font-weight:800;font-family:Syne,sans-serif;color:'+(t===0?'#FFD700':t===1?'#C0C0C0':'#CD7F32')+';">'+avg.toFixed(2)+'<span style="font-size:12px;color:var(--muted)"> / 5</span></div>'
-        +(cu.role==='manager'?'<label style="display:inline-block;margin-top:12px;padding:6px 12px;background:rgba(124,111,255,0.15);border:1px solid rgba(124,111,255,0.3);border-radius:8px;color:var(--accent);font-size:11px;font-weight:600;cursor:pointer;">📷 Upload Photo<input type="file" accept="image/*" style="display:none;" onchange="uploadPhoto(this,\''+emp+'\','+mi+')" /></label>':'')
-        +(cu.role==='manager'&&photo?'<button onclick="removePhoto(\''+emp+'\','+mi+')" style="display:block;margin:6px auto 0;background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;">✕ Remove photo</button>':'')
-        +'</div>';
+    var top3=getRankedList(mi).filter(function(l){ return l.avg!==null; }).slice(0,3);
+    if(!top3.length) continue;
+    any=true;
+    html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:16px;">';
+    html+='<div style="font-family:Syne,sans-serif;font-size:16px;font-weight:700;margin-bottom:16px;">'+MONTHS[mi]+' 2026</div>';
+    html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;">';
+    for(var i=0;i<top3.length;i++) {
+      (function(entry,rankIdx){
+        var photo=lsGetLocal(getPhotoKey(entry.name));
+        var avatar = photo
+          ? '<div style="width:64px;height:64px;border-radius:50%;background-image:url('+photo+');background-size:cover;background-position:center;margin:0 auto 10px;border:3px solid '+(rankIdx===0?'#FFD700':'var(--border)')+';"></div>'
+          : '<div style="width:64px;height:64px;border-radius:50%;background:'+medalColors[rankIdx]+';display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-size:20px;font-weight:800;margin:0 auto 10px;">'+initials(entry.name)+'</div>';
+        html+='<div style="text-align:center;padding:18px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:14px;position:relative;">';
+        html+='<div style="font-size:30px;margin-bottom:4px;">'+medals[rankIdx]+'</div>';
+        html+=avatar;
+        html+='<div style="font-family:Syne,sans-serif;font-size:14px;font-weight:700;">'+entry.name+'</div>';
+        html+='<div style="font-size:22px;font-weight:800;color:var(--accent);font-family:Syne,sans-serif;margin-top:4px;">'+entry.avg.toFixed(2)+'</div>';
+        html+='<div style="font-size:10px;color:var(--muted);">avg / 5.00</div>';
+        if(isManager) {
+          html+='<div style="display:flex;gap:6px;justify-content:center;margin-top:10px;">';
+          html+='<button type="button" onclick="uploadPhoto(\''+entry.name.replace(/'/g,"\\'")+'\')" style="background:rgba(124,111,255,0.18);border:1px solid rgba(124,111,255,0.3);color:var(--accent);border-radius:7px;font-size:11px;font-weight:600;padding:5px 10px;cursor:pointer;">📷 Photo</button>';
+          if(photo) html+='<button type="button" onclick="removePhoto(\''+entry.name.replace(/'/g,"\\'")+'\')" style="background:rgba(255,77,109,0.12);border:1px solid rgba(255,77,109,0.25);color:var(--danger);border-radius:7px;font-size:11px;font-weight:600;padding:5px 10px;cursor:pointer;">Remove</button>';
+          html+='</div>';
+        }
+        html+='</div>';
+      })(top3[i],i);
     }
     html+='</div></div>';
   }
-  if(!html) html='<div style="text-align:center;padding:60px 20px;color:var(--muted);"><div style="font-size:48px;margin-bottom:16px;">🏆</div><div style="font-size:16px;">No ratings submitted yet.</div></div>';
+  if(!any) html='<div class="empty" style="margin-top:32px;"><div style="font-size:40px;margin-bottom:12px;">⭐</div><div>No rated employees yet.</div><div style="font-size:12px;margin-top:6px;">Top performers appear here once ratings are saved.</div></div>';
   el.innerHTML=html;
 }
 
-function uploadPhoto(input,emp,monthIdx) {
-  var file=input.files[0]; if(!file) return;
-  if(file.size>2*1024*1024) { showToast('Image too large. Max 2MB.','error'); return; }
-  var reader=new FileReader();
-  reader.onload=function(e){
-    // Photos stored locally only (base64 too large for Google Sheets)
-    lsSetLocal(getPhotoKey(emp,monthIdx), e.target.result);
-    showToast('Photo uploaded for '+emp+' ✓ (stored locally)','success');
-    renderToppers();
+function uploadPhoto(emp) {
+  if(cu.role!=='manager') return;
+  var input=document.createElement('input');
+  input.type='file'; input.accept='image/*';
+  input.onchange=function(e){
+    var file=e.target.files[0]; if(!file) return;
+    if(file.size>1500000) { showToast('Image too large (max ~1.5MB)','error'); return; }
+    var reader=new FileReader();
+    reader.onload=function(ev){ lsSetLocal(getPhotoKey(emp), ev.target.result); showToast('Photo updated for '+emp+' ✓','success'); renderToppers(); };
+    reader.readAsDataURL(file);
   };
-  reader.readAsDataURL(file);
+  input.click();
 }
 
-function removePhoto(emp,monthIdx) {
-  try { localStorage.removeItem('photo_'+monthIdx+'_'+emp.replace(/\s+/g,'_')); } catch(e){}
+function removePhoto(emp) {
+  if(cu.role!=='manager') return;
+  try { localStorage.removeItem(getPhotoKey(emp)); } catch(e) {}
   showToast('Photo removed','info'); renderToppers();
 }
 
-// ── Graph Functions ───────────────────────────────────────────
-var chartInstance=null, teamChartInstance=null;
+// ── Graphs (Chart.js) ─────────────────────────────────────────
+var ratingChartInstance = null;
+var teamChartInstance = null;
+var CHART_COLORS = ['#7c6fff','#ff6b9d','#38ef7d','#ffc94a','#4ab8ff','#ff8a5c'];
+
 function initGraphSelects() {
   EMPS=getEmps();
-  var ge=document.getElementById('graph-emp'), gm=document.getElementById('graph-month'), tm=document.getElementById('team-month');
-  if(!ge) return;
-  ge.innerHTML=''; for(var i=0;i<EMPS.length;i++){var o=document.createElement('option');o.value=EMPS[i];o.textContent=EMPS[i];ge.appendChild(o);}
-  ge.onchange=function(){renderGraph();};
-  if(gm){gm.innerHTML='';for(var i=0;i<MONTHS.length;i++){var o=document.createElement('option');o.value=i;o.textContent=MONTHS[i]+' 2026';gm.appendChild(o);}}
-  if(tm){tm.innerHTML='';for(var i=0;i<MONTHS.length;i++){var o=document.createElement('option');o.value=i;o.textContent=MONTHS[i]+' 2026';tm.appendChild(o);}}
-  var gv=document.getElementById('graph-view');
-  if(gv) gv.onchange=function(){ document.getElementById('graph-month-wrap').style.display=(this.value==='by-month'||this.value==='criteria')?'block':'none'; renderGraph(); };
+  var ge=document.getElementById('graph-emp');
+  if(ge) { var prev=ge.value; ge.innerHTML=''; for(var i=0;i<EMPS.length;i++){ var o=document.createElement('option'); o.value=EMPS[i]; o.textContent=EMPS[i]; ge.appendChild(o);} if(prev) ge.value=prev; }
+  var gm=document.getElementById('graph-month');
+  if(gm && !gm.options.length) { for(var i=0;i<MONTHS.length;i++){ var o=document.createElement('option'); o.value=i; o.textContent=MONTHS[i]; gm.appendChild(o);} }
+  var tm=document.getElementById('team-month');
+  if(tm && !tm.options.length) { for(var i=0;i<MONTHS.length;i++){ var o=document.createElement('option'); o.value=i; o.textContent=MONTHS[i]; tm.appendChild(o);} }
 }
+
+function getChartOptions(yMax) {
+  return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{ labels:{ color:'#e2e2f0', font:{ family:'DM Sans' } } } },
+    scales:{
+      y:{ beginAtZero:true, max:(yMax||5), ticks:{ color:'#6868a0', stepSize:1 }, grid:{ color:'rgba(38,38,74,0.5)' } },
+      x:{ ticks:{ color:'#6868a0' }, grid:{ color:'rgba(38,38,74,0.3)' } }
+    }
+  };
+}
+
 function renderGraph() {
-  var geEl=document.getElementById('graph-emp'),gvEl=document.getElementById('graph-view'),gmEl=document.getElementById('graph-month');
-  if(!geEl||!gvEl) return;
-  var emp=geEl.value,view=gvEl.value,monthIdx=parseInt(gmEl?gmEl.value:0);
-  var canvas=document.getElementById('ratingChart'); if(!canvas) return;
-  if(chartInstance){chartInstance.destroy();chartInstance=null;}
-  var weekColors=['#7c6fff','#ff6b9d','#38ef7d','#ffc94a'];
+  if(typeof Chart==='undefined') return;
+  var empSel=document.getElementById('graph-emp');
+  var emp=empSel?empSel.value:null;
+  var view=document.getElementById('graph-view').value;
+  var wrap=document.getElementById('graph-month-wrap');
+  if(wrap) wrap.style.display=(view==='by-month')?'block':'none';
+  if(!emp) return;
+  var labels=[], data=[], title='';
   if(view==='all-weeks') {
-    var labels=[],data=[];
-    for(var mi=0;mi<MONTHS.length;mi++) for(var w=1;w<=4;w++){var r=getRating(mi,w,emp);if(r&&r.avg&&r.avg!=='—'){labels.push(MONTHS[mi].substr(0,3)+' W'+w);data.push(parseFloat(r.avg));}}
-    if(!data.length){canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);return;}
-    chartInstance=new Chart(canvas,{type:'line',data:{labels:labels,datasets:[{label:emp+' — Avg Rating',data:data,borderColor:'#7c6fff',backgroundColor:'rgba(124,111,255,0.1)',borderWidth:2.5,pointBackgroundColor:'#7c6fff',pointRadius:5,tension:0.3,fill:true}]},options:getChartOptions('Rating (out of 5)',0,5)});
+    for(var mi=0;mi<MONTHS.length;mi++) for(var w=1;w<=4;w++){
+      labels.push(MONTHS[mi].slice(0,3)+' W'+w);
+      var r=getRating(mi,w,emp); data.push(r&&r.avg&&r.avg!=='—'?parseFloat(r.avg):null);
+    }
+    title=emp+' — all weeks (2026)';
   } else if(view==='by-month') {
-    var labels=['Week 1','Week 2','Week 3','Week 4'],data=[];
-    for(var w=1;w<=4;w++){var r=getRating(monthIdx,w,emp);data.push(r&&r.avg&&r.avg!=='—'?parseFloat(r.avg):null);}
-    chartInstance=new Chart(canvas,{type:'bar',data:{labels:labels,datasets:[{label:emp+' — '+MONTHS[monthIdx],data:data,backgroundColor:['rgba(124,111,255,0.7)','rgba(255,107,157,0.7)','rgba(56,239,125,0.7)','rgba(255,201,74,0.7)'],borderColor:weekColors,borderWidth:2,borderRadius:8}]},options:getChartOptions('Rating (out of 5)',0,5)});
-  } else if(view==='criteria') {
-    var ds=[];
-    for(var w=1;w<=4;w++){var r=getRating(monthIdx,w,emp),wdata=[];for(var ci=0;ci<CRITERIA.length;ci++)wdata.push(r&&r.criteria?(r.criteria[CRITERIA[ci]]||0):0);ds.push({label:'Week '+w,data:wdata,borderColor:weekColors[w-1],backgroundColor:weekColors[w-1]+'33',borderWidth:2,pointRadius:4});}
-    var shortLabels=CRITERIA.map(function(l){return l.length>16?l.substring(0,16)+'…':l;});
-    chartInstance=new Chart(canvas,{type:'radar',data:{labels:shortLabels,datasets:ds},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#e2e2f0',font:{family:'DM Sans'}}}},scales:{r:{min:0,max:5,ticks:{stepSize:1,color:'#6868a0',backdropColor:'transparent'},grid:{color:'rgba(104,104,160,0.2)'},pointLabels:{color:'#e2e2f0',font:{family:'DM Sans',size:11}},angleLines:{color:'rgba(104,104,160,0.2)'}}}}});
+    var mi=parseInt(document.getElementById('graph-month').value||0);
+    for(var w=1;w<=4;w++){ labels.push('Week '+w); var r=getRating(mi,w,emp); data.push(r&&r.avg&&r.avg!=='—'?parseFloat(r.avg):null); }
+    title=emp+' — '+MONTHS[mi]+' 2026';
+  } else { // criteria breakdown — average each criterion across all ratings
+    var sums={}, counts={};
+    for(var ci=0;ci<CRITERIA.length;ci++){ sums[CRITERIA[ci]]=0; counts[CRITERIA[ci]]=0; }
+    for(var mi=0;mi<MONTHS.length;mi++) for(var w=1;w<=4;w++){
+      var r=getRating(mi,w,emp); if(!r||!r.criteria) continue;
+      for(var ci=0;ci<CRITERIA.length;ci++){ var v=r.criteria[CRITERIA[ci]]||0; if(v>0){ sums[CRITERIA[ci]]+=v; counts[CRITERIA[ci]]++; } }
+    }
+    for(var ci=0;ci<CRITERIA.length;ci++){ labels.push(CRITERIA[ci]); data.push(counts[CRITERIA[ci]]?parseFloat((sums[CRITERIA[ci]]/counts[CRITERIA[ci]]).toFixed(2)):0); }
+    title=emp+' — criteria averages (2026)';
   }
+  if(ratingChartInstance) ratingChartInstance.destroy();
+  var ctx=document.getElementById('ratingChart').getContext('2d');
+  ratingChartInstance=new Chart(ctx,{
+    type:(view==='criteria')?'bar':'line',
+    data:{ labels:labels, datasets:[{ label:title, data:data, borderColor:'#7c6fff', backgroundColor:(view==='criteria')?'rgba(124,111,255,0.55)':'rgba(124,111,255,0.15)', borderWidth:2, fill:view!=='criteria', tension:0.3, spanGaps:true, pointBackgroundColor:'#ff6b9d', pointRadius:4 }] },
+    options:getChartOptions(5)
+  });
 }
+
 function renderTeamChart() {
-  var tmEl=document.getElementById('team-month'); if(!tmEl) return;
-  var monthIdx=parseInt(tmEl.value||0),canvas=document.getElementById('teamChart'); if(!canvas) return;
-  if(teamChartInstance){teamChartInstance.destroy();teamChartInstance=null;}
-  var labels=['Week 1','Week 2','Week 3','Week 4'],data=[]; EMPS=getEmps();
-  for(var w=1;w<=4;w++){var total=0,cnt=0;for(var i=0;i<EMPS.length;i++){var r=getRating(monthIdx,w,EMPS[i]);if(r&&r.avg&&r.avg!=='—'){total+=parseFloat(r.avg);cnt++;}}data.push(cnt>0?parseFloat((total/cnt).toFixed(2)):null);}
-  teamChartInstance=new Chart(canvas,{type:'bar',data:{labels:labels,datasets:[{label:'Team Avg — '+MONTHS[monthIdx],data:data,backgroundColor:['rgba(124,111,255,0.7)','rgba(255,107,157,0.7)','rgba(56,239,125,0.7)','rgba(255,201,74,0.7)'],borderColor:['#7c6fff','#ff6b9d','#38ef7d','#ffc94a'],borderWidth:2,borderRadius:8}]},options:getChartOptions('Team Average Rating',0,5)});
-}
-function getChartOptions(yLabel,yMin,yMax) {
-  return {responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#e2e2f0',font:{family:'DM Sans',size:12}}},tooltip:{backgroundColor:'rgba(16,16,28,0.95)',titleColor:'#e2e2f0',bodyColor:'#6868a0',borderColor:'#26264a',borderWidth:1,padding:12}},scales:{x:{ticks:{color:'#6868a0',font:{family:'DM Sans'}},grid:{color:'rgba(38,38,74,0.5)'}},y:{min:yMin,max:yMax,ticks:{color:'#6868a0',font:{family:'DM Sans'},stepSize:1},grid:{color:'rgba(38,38,74,0.5)'},title:{display:true,text:yLabel,color:'#6868a0',font:{family:'DM Sans',size:11}}}}};
+  if(typeof Chart==='undefined') return;
+  EMPS=getEmps();
+  var mi=parseInt(document.getElementById('team-month').value||0);
+  var labels=['Week 1','Week 2','Week 3','Week 4'], data=[];
+  for(var w=1;w<=4;w++){
+    var total=0,count=0;
+    for(var i=0;i<EMPS.length;i++){ var r=getRating(mi,w,EMPS[i]); if(r&&r.avg&&r.avg!=='—'){ total+=parseFloat(r.avg); count++; } }
+    data.push(count?parseFloat((total/count).toFixed(2)):null);
+  }
+  if(teamChartInstance) teamChartInstance.destroy();
+  var ctx=document.getElementById('teamChart').getContext('2d');
+  teamChartInstance=new Chart(ctx,{
+    type:'bar',
+    data:{ labels:labels, datasets:[{ label:'Team Avg — '+MONTHS[mi]+' 2026', data:data, backgroundColor:['rgba(124,111,255,0.65)','rgba(255,107,157,0.65)','rgba(56,239,125,0.65)','rgba(255,201,74,0.65)'], borderColor:['#7c6fff','#ff6b9d','#38ef7d','#ffc94a'], borderWidth:1.5, borderRadius:8 }] },
+    options:getChartOptions(5)
+  });
 }
 
 // ── CSV Export ────────────────────────────────────────────────
 function initExportSelects() {
   EMPS=getEmps();
-  var em=document.getElementById('export-month'),ee=document.getElementById('export-emp'); if(!em||!ee) return;
-  em.innerHTML=''; ee.innerHTML='';
-  for(var i=0;i<MONTHS.length;i++){var o=document.createElement('option');o.value=i;o.textContent=MONTHS[i]+' 2026';em.appendChild(o);}
-  for(var i=0;i<EMPS.length;i++){var o=document.createElement('option');o.value=EMPS[i];o.textContent=EMPS[i];ee.appendChild(o);}
+  var em=document.getElementById('export-month');
+  if(em && !em.options.length) { for(var i=0;i<MONTHS.length;i++){ var o=document.createElement('option'); o.value=i; o.textContent=MONTHS[i]+' 2026'; em.appendChild(o);} }
+  var ee=document.getElementById('export-emp');
+  if(ee) { ee.innerHTML=''; for(var i=0;i<EMPS.length;i++){ var o=document.createElement('option'); o.value=EMPS[i]; o.textContent=EMPS[i]; ee.appendChild(o);} }
 }
-function buildCSVRows(empFilter,monthFilter) {
+
+function buildCSVRows(opts) {
+  opts=opts||{};
   EMPS=getEmps();
-  var headers=['Employee','Month','Week','Attendance/Availability','Professionalism/Behavior','Support Resolution Rate+FCR','Ownership','Quality & CSAT','Proactiveness','Average','Comments','Saved By','Last Edited At'];
-  var rows=[headers];
-  var emps=empFilter?[empFilter]:EMPS;
-  for(var i=0;i<emps.length;i++) {
-    var emp=emps[i];
-    for(var mi=0;mi<MONTHS.length;mi++) {
-      if(monthFilter!==null&&monthFilter!==undefined&&monthFilter!==mi) continue;
-      for(var w=1;w<=4;w++) {
+  var header=['Month','Week','Employee'];
+  for(var ci=0;ci<CRITERIA.length;ci++) header.push(CRITERIA[ci]);
+  header.push('Average','Comment','Saved By','Saved At');
+  var rows=[header];
+  for(var mi=0;mi<MONTHS.length;mi++) {
+    if(opts.monthIdx!==undefined && opts.monthIdx!==null && mi!==opts.monthIdx) continue;
+    for(var w=1;w<=4;w++) {
+      for(var i=0;i<EMPS.length;i++) {
+        var emp=EMPS[i];
+        if(opts.emp && emp!==opts.emp) continue;
         var r=getRating(mi,w,emp);
-        if(r) rows.push(['"'+emp+'"',MONTHS[mi],'Week '+w,r.criteria[CRITERIA[0]]||0,r.criteria[CRITERIA[1]]||0,r.criteria[CRITERIA[2]]||0,r.criteria[CRITERIA[3]]||0,r.criteria[CRITERIA[4]]||0,r.criteria[CRITERIA[5]]||0,r.avg,'"'+(r.comment||'').replace(/"/g,"''")+'"','"'+(r.savedBy||'Unknown')+'"',r.savedAt||'']);
+        if(!r) continue;
+        var row=[MONTHS[mi]+' 2026','Week '+w,emp];
+        for(var ci=0;ci<CRITERIA.length;ci++) row.push(r.criteria&&r.criteria[CRITERIA[ci]]!==undefined?r.criteria[CRITERIA[ci]]:0);
+        row.push(r.avg||'', r.comment||'', r.savedBy||'', r.savedAt?new Date(r.savedAt).toLocaleString():'');
+        rows.push(row);
       }
     }
   }
   return rows;
 }
-function downloadCSV(rows,filename) {
-  if(rows.length<=1){showToast('No rating data to export','error');return;}
-  var csv=rows.map(function(r){return r.join(',');}).join('\n');
-  var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+
+function downloadCSV(rows, filename) {
+  if(rows.length<=1) { showToast('No ratings to export','error'); return; }
+  var csv=rows.map(function(row){
+    return row.map(function(cell){
+      var s=(cell===null||cell===undefined)?'':String(cell);
+      if(/[",\n\r]/.test(s)) s='"'+s.replace(/"/g,'""')+'"';
+      return s;
+    }).join(',');
+  }).join('\n');
+  var blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
   var url=URL.createObjectURL(blob);
-  var a=document.createElement('a');a.href=url;a.download=filename;a.style.display='none';
-  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
-  showToast('Downloaded: '+filename,'success');
+  var a=document.createElement('a'); a.href=url; a.download=filename; a.style.display='none';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  showToast('Exported '+(rows.length-1)+' rating'+(rows.length-1===1?'':'s')+' ✓','success');
 }
-function exportAllCSV()   { downloadCSV(buildCSVRows(null,null),'team_ratings_all_2026.csv'); }
-function exportMonthCSV() { var mi=parseInt(document.getElementById('export-month').value); downloadCSV(buildCSVRows(null,mi),'team_ratings_'+MONTHS[mi]+'_2026.csv'); }
-function exportEmpCSV()   { var emp=document.getElementById('export-emp').value; downloadCSV(buildCSVRows(emp,null),'rating_'+emp.replace(/\s+/g,'_')+'_2026.csv'); }
 
-// ── Boot Sequence ─────────────────────────────────────────────
+function exportAllCSV() { downloadCSV(buildCSVRows({}), 'team_ratings_2026_full.csv'); }
+function exportMonthCSV() {
+  var mi=parseInt(document.getElementById('export-month').value||0);
+  downloadCSV(buildCSVRows({ monthIdx:mi }), 'team_ratings_'+MONTHS[mi]+'_2026.csv');
+}
+function exportEmpCSV() {
+  var emp=document.getElementById('export-emp').value;
+  downloadCSV(buildCSVRows({ emp:emp }), 'ratings_'+emp.replace(/[^a-z0-9]/gi,'_')+'_2026.csv');
+}
+
+// ── Boot ──────────────────────────────────────────────────────
 window.onload = async function() {
-  // Show loading overlay while we connect to Google Sheets
-  var overlay = document.getElementById('loading-overlay');
-  overlay.style.display = 'flex';
-
+  var overlay=document.getElementById('loading-overlay');
+  if(overlay) overlay.style.display='flex';
   await loadAllData();
+  if(overlay) overlay.style.display='none';
+  document.getElementById('login-screen').style.display='flex';
 
-  // Small minimum display time so it doesn't flash
-  await new Promise(function(r){ setTimeout(r, 400); });
+  // Login bindings
+  var loginBtn=document.getElementById('login-btn');
+  if(loginBtn) loginBtn.addEventListener('click', doLogin);
+  var lemail=document.getElementById('lemail');
+  var lpass=document.getElementById('lpass');
+  function enterToLogin(e){ if(e.key==='Enter'){ e.preventDefault(); doLogin(); } }
+  if(lemail) lemail.addEventListener('keydown', enterToLogin);
+  if(lpass)  lpass.addEventListener('keydown', enterToLogin);
 
-  // Hide loading, show login
-  overlay.style.display = 'none';
-  document.getElementById('login-screen').style.display = 'flex';
+  // Add-employee on Enter
+  var newEmp=document.getElementById('new-emp-name');
+  if(newEmp) newEmp.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); addEmployee(); } });
 
-  // Attach event handlers
-  var btn = document.getElementById('login-btn');
-  if(btn) btn.onclick = function(){ doLogin(); };
-  var em = document.getElementById('lemail');
-  if(em) em.onkeypress = function(e){ if(e.key==='Enter') doLogin(); };
-  var pw = document.getElementById('lpass');
-  if(pw) pw.onkeypress = function(e){ if(e.key==='Enter') doLogin(); };
-  var nei = document.getElementById('new-emp-name');
-  if(nei) nei.onkeypress = function(e){ if(e.key==='Enter') addEmployee(); };
-
-  // Inform user if GAS is not set up
-  if(!isGASConfigured()) {
-    console.warn('[Team Performance] GAS_URL not configured. Running in local-only mode.\nSet GAS_URL in the script to enable cross-device sync via Google Sheets.');
-  }
+  // CSV file picker — reflect chosen filename in the drop label
+  var csvFile=document.getElementById('csv-file');
+  if(csvFile) csvFile.addEventListener('change', function(){
+    var label=document.getElementById('csv-file-label');
+    var drop=document.getElementById('csv-drop');
+    if(csvFile.files && csvFile.files[0]) {
+      if(label) label.textContent='📄 '+csvFile.files[0].name;
+      if(drop) drop.classList.add('has-file');
+    } else {
+      if(label) label.textContent='📄 Choose CSV file…';
+      if(drop) drop.classList.remove('has-file');
+    }
+  });
 };
 </script>
 </body>
