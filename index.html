@@ -376,6 +376,95 @@ header {
   .wgrid { grid-template-columns:repeat(2,1fr); }
   .scalecard { position:static; }
 }
+
+/* ════════════════════ PREMIUM POLISH ════════════════════ */
+
+/* Gradient headlines (blue → purple → pink → mint) with depth for legibility */
+.login-card h2, .ptitle, .rhead h2, .loading-title {
+  background:linear-gradient(100deg,#9aa9ff 0%,#b07cff 36%,#ff8fc7 64%,#5ef0a8 100%);
+  -webkit-background-clip:text; background-clip:text;
+  -webkit-text-fill-color:transparent; color:transparent;
+  letter-spacing:-0.6px;
+  filter:drop-shadow(0 2px 12px rgba(0,0,0,0.45));
+}
+.htitle {
+  background:linear-gradient(100deg,#c9c2ff,#ff9ec6);
+  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent;
+}
+
+/* Glass surfaces: brighter hairline edge + layered depth */
+.login-card, .rcard, .scalecard, .asec, .macc, .mbtn, .wbtn, .ebtn,
+.main div[style*="border-radius:16px"], .main div[style*="border-radius:14px"] {
+  border-color:rgba(255,255,255,0.08) !important;
+  box-shadow:0 22px 60px -26px rgba(0,0,0,0.75), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.login-card { box-shadow:0 40px 90px -30px rgba(0,0,0,0.85), 0 0 0 1px rgba(124,111,255,0.10) inset, inset 0 1px 0 rgba(255,255,255,0.08); }
+
+/* Lively card hover: lift + accent glow + edge bloom */
+.mbtn, .wbtn, .ebtn { transition:transform 0.22s cubic-bezier(0.34,1.4,0.5,1), box-shadow 0.22s, border-color 0.22s; }
+.mbtn:hover, .wbtn:hover, .ebtn:hover {
+  border-color:rgba(124,111,255,0.6) !important;
+  box-shadow:0 18px 44px -14px rgba(124,111,255,0.5), 0 0 0 1px rgba(124,111,255,0.25) inset;
+  transform:translateY(-4px);
+}
+
+/* Avatars & logos: gradient orb with inner sheen + glow */
+.eav, .uav, .ravlg, .login-logo, .hlogo, .loading-logo, .login-card .login-logo {
+  box-shadow:0 8px 22px rgba(124,111,255,0.5), inset 0 1px 1px rgba(255,255,255,0.35) !important;
+}
+
+/* Primary buttons: deeper tri-gradient + glow + sheen on hover */
+#login-btn, #save-btn {
+  background:linear-gradient(120deg,#7c6fff 0%,#a06bff 45%,#ff6b9d 100%);
+  box-shadow:0 12px 32px -8px rgba(124,111,255,0.65);
+  position:relative; overflow:hidden;
+}
+#login-btn::after, #save-btn::after {
+  content:''; position:absolute; top:0; left:-60%; width:50%; height:100%;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,0.35),transparent);
+  transform:skewX(-20deg); transition:left 0.5s ease;
+}
+#login-btn:hover::after, #save-btn:hover::after { left:130%; }
+#login-btn:hover, #save-btn:hover { box-shadow:0 16px 40px -8px rgba(255,107,157,0.55); filter:brightness(1.05); transform:translateY(-2px); }
+
+/* Tabs: active glow, smoother idle */
+.htab { transition:all 0.2s; }
+.htab.active { box-shadow:0 6px 18px -5px rgba(124,111,255,0.7); }
+
+/* Badges: gradient fills + outline */
+.rbadge.manager { background:linear-gradient(120deg,rgba(124,111,255,0.28),rgba(176,108,255,0.28)); border:1px solid rgba(124,111,255,0.5); }
+.rbadge.viewer  { background:linear-gradient(120deg,rgba(56,239,125,0.22),rgba(74,184,255,0.2)); border:1px solid rgba(56,239,125,0.45); }
+.tag-active { box-shadow:0 0 14px -2px rgba(56,239,125,0.4); }
+
+/* Inputs: focus glow ring */
+.fg input:focus, .cbox textarea:focus, .einrow input:focus, .kpi-input:focus, #new-emp-name:focus, select:focus {
+  box-shadow:0 0 0 3px rgba(124,111,255,0.2) !important;
+}
+
+/* Score controls: refined depth */
+.intbtn { box-shadow:inset 0 1px 0 rgba(255,255,255,0.05); }
+.intbtn.on { box-shadow:0 6px 18px -5px rgba(124,111,255,0.7); }
+.scoreval, .decval, .avgpill, .avgb { box-shadow:0 4px 14px -6px rgba(124,111,255,0.5); }
+
+/* Criterion rows: subtle interactive feel */
+.crow { transition:border-color 0.18s, background 0.18s; }
+.crow:hover { border-color:rgba(124,111,255,0.3); }
+
+/* User chip + sync chip + logout: cohesive glass */
+.uchip { background:rgba(26,26,46,0.62); border-color:rgba(255,255,255,0.08); box-shadow:inset 0 1px 0 rgba(255,255,255,0.05); }
+.uav { box-shadow:0 4px 12px rgba(124,111,255,0.5); }
+.sync-chip { background:rgba(26,26,46,0.6); }
+.logout-btn:hover { box-shadow:0 0 0 3px rgba(124,111,255,0.15); }
+
+/* Header: refined separator with faint glow */
+header { border-bottom:1px solid rgba(124,111,255,0.18); box-shadow:0 8px 28px -18px rgba(124,111,255,0.4); }
+.bc { -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); }
+
+/* Employee-grid avatar ring accent */
+.ebtn .eav, .egrid .eav { box-shadow:0 4px 14px rgba(124,111,255,0.45), 0 0 0 2px rgba(124,111,255,0.18) !important; }
+
+/* Scale card numbers pop a touch */
+.scalecard .snum { box-shadow:0 3px 10px -3px rgba(0,0,0,0.6); }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
