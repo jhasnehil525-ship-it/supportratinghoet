@@ -465,6 +465,17 @@ header { border-bottom:1px solid rgba(124,111,255,0.18); box-shadow:0 8px 28px -
 
 /* Scale card numbers pop a touch */
 .scalecard .snum { box-shadow:0 3px 10px -3px rgba(0,0,0,0.6); }
+
+/* per-criterion comments */
+.ccrow { display:flex; align-items:center; gap:8px; margin:-3px 0 8px; padding:2px 2px 2px 4px; }
+.cclabel { font-size:13px; opacity:0.55; }
+.ccinput { flex:1; background:var(--surface2); border:1px solid var(--border); border-radius:9px; padding:8px 12px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:13px; outline:none; transition:border-color 0.18s, box-shadow 0.18s; }
+.ccinput:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(124,111,255,0.18); }
+.ccinput::placeholder { color:var(--muted); }
+.ccview { margin:-3px 0 9px; padding:8px 12px; background:var(--bg); border-left:2px solid var(--accent); border-radius:0 8px 8px 0; font-size:12px; color:var(--muted); font-style:italic; }
+.email-btn { width:100%; margin-top:10px; padding:13px; background:linear-gradient(120deg,rgba(74,184,255,0.16),rgba(56,239,125,0.16)); border:1px solid rgba(74,184,255,0.4); border-radius:12px; color:#7fd4ff; font-family:'Syne',sans-serif; font-size:14px; font-weight:700; cursor:pointer; transition:all 0.18s; }
+.email-btn:hover { border-color:rgba(74,184,255,0.7); box-shadow:0 6px 18px -6px rgba(74,184,255,0.5); }
+.email-btn:disabled { opacity:0.6; cursor:default; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
@@ -614,6 +625,8 @@ header { border-bottom:1px solid rgba(124,111,255,0.18); box-shadow:0 8px 28px -
                 <button id="undo-btn" type="button" onclick="undoRating()" style="padding:14px 18px;background:rgba(255,201,74,0.15);border:1px solid rgba(255,201,74,0.3);border-radius:12px;color:var(--accent4);font-family:Syne,sans-serif;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;display:none;" title="Undo last change">↩ Undo</button>
                 <button id="delete-btn" type="button" onclick="deleteRating()" style="padding:14px 18px;background:rgba(255,77,109,0.12);border:1px solid rgba(255,77,109,0.3);border-radius:12px;color:var(--danger);font-family:Syne,sans-serif;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;display:none;" title="Delete this rating">🗑 Delete</button>
               </div>
+              <button id="email-btn" class="email-btn" type="button" onclick="sendRatingEmail()" title="Email this employee that their rating is ready">📧 Send Email to Employee</button>
+              <div style="font-size:11px;color:var(--muted);margin-top:6px;text-align:center;">Saving does not email anyone — click “Send Email” when you're ready to notify the employee.</div>
             </div>
           </div>
           <div class="scalecard">
@@ -907,36 +920,68 @@ function testEmail() {
 
 // ── Salary / ratings mirror sheet ──
 function salarySheet_() { var ss = SpreadsheetApp.openById(SALARY_SHEET_ID); return ss.getSheetByName(SALARY_TAB) || ss.getSheets()[0]; }
+function normName_(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim(); }
+function tokensOf_(s) { return normName_(s).split(' ').filter(function (x) { return x; }); }
+function isSubset_(a, b) { if (!a.length) return false; for (var i = 0; i < a.length; i++) if (b.indexOf(a[i]) === -1) return false; return true; }
+function editDist_(a, b) {
+  var m = a.length, n = b.length; if (!m) return n; if (!n) return m;
+  var prev = [], cur = [], i, j;
+  for (j = 0; j <= n; j++) prev[j] = j;
+  for (i = 1; i <= m; i++) { cur[0] = i; for (j = 1; j <= n; j++) { var cost = (a.charAt(i - 1) === b.charAt(j - 1)) ? 0 : 1; cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost); } for (j = 0; j <= n; j++) prev[j] = cur[j]; }
+  return prev[n];
+}
+function nameScore_(w, h) {
+  var nw = normName_(w), nh = normName_(h);
+  if (!nw || !nh) return 0;
+  if (nw === nh) return 3;
+  var tw = tokensOf_(w), th = tokensOf_(h);
+  if (isSubset_(tw, th) || isSubset_(th, tw)) return 2;
+  var best = 99;
+  for (var i = 0; i < tw.length; i++) for (var j = 0; j < th.length; j++) if (tw[i].length >= 4 && th[j].length >= 4) { var d = editDist_(tw[i], th[j]); if (d < best) best = d; }
+  return (best <= 1) ? 1 : 0;
+}
 function findOrAddAgentColumn_(sheet, name, create) {
   var lastCol = Math.max(sheet.getLastColumn(), 1);
-  var h = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-  var t = String(name).trim().toLowerCase();
-  for (var c = 0; c < h.length; c++) if (String(h[c]).trim().toLowerCase() === t) return c + 1;
+  var h = sheet.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
+  var bestScore = 0, bestCol = -1, tie = false;
+  for (var c = 0; c < h.length; c++) {
+    var nh = normName_(h[c]);
+    if (!nh || nh === 'months' || nh === 'duration' || nh.indexOf('name of agents') !== -1) continue;
+    var s = nameScore_(name, h[c]);
+    if (s > bestScore) { bestScore = s; bestCol = c + 1; tie = false; }
+    else if (s === bestScore && s > 0) { tie = true; }
+  }
+  if (bestScore > 0 && !tie) return bestCol;
   if (!create) return -1;
   sheet.getRange(1, lastCol + 1).setValue(name); return lastCol + 1;
 }
-function findMonthCorrelationRow_(sheet, monthName, year) {
+var BLOCK_LABELS_ = ['1st week','2nd week','3rd week','4th week','avg rating','fixed salary','variable salary','total salary','correlation'];
+function findMonthAnchorRow_(sheet, monthName, year) {
   var lastRow = Math.max(sheet.getLastRow(), 1);
-  var a = sheet.getRange(1, 1, lastRow, 1).getValues();
+  var a = sheet.getRange(1, 1, lastRow, 1).getDisplayValues();
   var pre = String(monthName).trim().toLowerCase().slice(0, 3), yr = String(year);
-  for (var r = 0; r < a.length; r++) { var v = String(a[r][0]).trim().toLowerCase(); if (v && v.indexOf(yr) !== -1 && v.slice(0, 3) === pre) return r + 1; }
+  for (var r = 0; r < a.length; r++) { var v = String(a[r][0]).trim().toLowerCase(); if (v && v.indexOf(yr) !== -1 && v.indexOf(pre) !== -1) return r + 1; }
   return -1;
 }
-function weekRowForCorr_(sheet, corrRow, week) {
-  var labels = ['1st week', '2nd week', '3rd week', '4th week'], want = labels[week - 1];
-  var guess = corrRow - 9 + week;
-  if (guess >= 1 && String(sheet.getRange(guess, 2).getValue()).trim().toLowerCase() === want) return guess;
-  for (var r = Math.max(corrRow - 8, 1); r < corrRow; r++) if (String(sheet.getRange(r, 2).getValue()).trim().toLowerCase() === want) return r;
+function weekRowForMonth_(sheet, anchorRow, week) {
+  var bVal = String(sheet.getRange(anchorRow, 2).getDisplayValue()).trim().toLowerCase(), off = -1;
+  for (var i = 0; i < BLOCK_LABELS_.length; i++) if (bVal.indexOf(BLOCK_LABELS_[i]) !== -1) { off = i; break; }
+  var blockTop = (off >= 0) ? (anchorRow - off) : anchorRow; if (blockTop < 1) blockTop = 1;
+  var want = ['1st week','2nd week','3rd week','4th week'][week - 1];
+  var guess = blockTop + (week - 1);
+  if (guess >= 1 && String(sheet.getRange(guess, 2).getDisplayValue()).trim().toLowerCase().indexOf(want) !== -1) return guess;
+  for (var rr = blockTop; rr < blockTop + 9; rr++) if (rr >= 1 && String(sheet.getRange(rr, 2).getDisplayValue()).trim().toLowerCase().indexOf(want) !== -1) return rr;
   return guess;
 }
 function pushRating_(b) {
   if (!b || !b.employee || !b.month || !b.week) return { ok: false, error: 'missing fields' };
   if (!SALARY_SHEET_ID || SALARY_SHEET_ID.indexOf('PUT_YOUR') !== -1) return { ok: false, error: 'SALARY_SHEET_ID not set' };
   var sheet = salarySheet_();
-  var corrRow = findMonthCorrelationRow_(sheet, b.month, b.year || 2026);
-  if (corrRow < 0) return { ok: false, error: 'month not found' };
+  var anchor = findMonthAnchorRow_(sheet, b.month, b.year || 2026);
+  if (anchor < 0) return { ok: false, error: 'month not found' };
   var col = findOrAddAgentColumn_(sheet, b.employee, true);
-  var row = weekRowForCorr_(sheet, corrRow, parseInt(b.week, 10));
+  var row = weekRowForMonth_(sheet, anchor, parseInt(b.week, 10));
+  if (row < 1) return { ok: false, error: 'week row out of range' };
   if (b.clear) { sheet.getRange(row, col).setValue(''); return { ok: true, cleared: true }; }
   var val = parseFloat(b.avg);
   if (isNaN(val)) { sheet.getRange(row, col).setValue(''); return { ok: true, blank: true }; }
@@ -1129,6 +1174,7 @@ var KPI_DEFS = [
   { key:'followup',      name:'Follow-up',                     desc:'Follow up to resolve the CX pending query.',             target:'100%',         unit:'%',    targetNum:100 }
 ];
 var curKPI = {};
+var curComments = {};
 
 var CRITERIA = [
   'Attendance / Availability',
@@ -1208,6 +1254,7 @@ function updateKPI(key, val) {
 
 // ── Utils ─────────────────────────────────────────────────────
 function initials(n) { var p=(n||'').trim().split(/\s+/); var r=''; for(var i=0;i<Math.min(2,p.length);i++) r+=(p[i][0]||''); return r.toUpperCase()||'?'; }
+function escHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function normTok(s) { return (s||'').toLowerCase().replace(/[^a-z0-9]/g,''); }
 function showToast(msg,type) {
   var t=document.getElementById('toast');
@@ -1470,10 +1517,12 @@ function buildForm(emp) {
   var saved=getRating(cMonth,cWeek,emp);
   curRatings={};
   for(var i=0;i<CRITERIA.length;i++) curRatings[CRITERIA[i]]=saved?(saved.criteria[CRITERIA[i]]||0):0;
+  curComments = saved ? (saved.ccomments ? JSON.parse(JSON.stringify(saved.ccomments)) : {}) : {};
   document.getElementById('cfield').value=saved?(saved.comment||''):'';
   document.getElementById('cfield').readOnly=viewOnly;
   document.getElementById('vobanner').style.display=viewOnly?'block':'none';
   document.getElementById('save-btn').style.display=viewOnly?'none':'block';
+  var emailBtn=document.getElementById('email-btn'); if(emailBtn) emailBtn.style.display=viewOnly?'none':'block';
   buildKPITable(saved?(saved.kpi||{}):null, viewOnly);
   var kpiBtn=document.getElementById('kpi-toggle-btn');
   var kpiBody=document.getElementById('kpi-body');
@@ -1491,6 +1540,8 @@ function buildForm(emp) {
       if(viewOnly) {
         topRow.innerHTML='<div class="clabel">'+crit+'</div><span class="scoreval ro">'+Number(v).toFixed(1)+'</span>';
         cl.appendChild(topRow);
+        var ccv=curComments[crit]||'';
+        if(ccv){ var ccd=document.createElement('div'); ccd.className='ccview'; ccd.textContent='💬 '+ccv; cl.appendChild(ccd); }
         return;
       }
       var btns='';
@@ -1538,6 +1589,13 @@ function buildForm(emp) {
         if(sel<0) sel=Math.floor(curRatings[crit]||0);
         apply(sel, parseInt(this.value,10));
       });
+
+      var ccRow=document.createElement('div'); ccRow.className='ccrow';
+      ccRow.innerHTML='<span class="cclabel">💬</span><input type="text" class="ccinput" placeholder="Comment on '+crit+' (optional)">';
+      var ccInput=ccRow.querySelector('.ccinput');
+      ccInput.value=curComments[crit]||'';
+      ccInput.addEventListener('input', function(){ curComments[crit]=this.value; });
+      cl.appendChild(ccRow);
     })(CRITERIA[j]);
   }
   var ar=document.createElement('div'); ar.className='crow';
@@ -1582,12 +1640,11 @@ function saveRating() {
   saveBtn.disabled=true; saveBtn.textContent='💾 Saving...';
   var existing=getRating(cMonth,cWeek,cEmp);
   var history=existing?(existing.history||[]):[];
-  if(existing) history.push({ criteria:existing.criteria, avg:existing.avg, comment:existing.comment, kpi:existing.kpi||{}, savedAt:existing.savedAt, savedBy:existing.savedBy||'Unknown' });
-  var d={ criteria:{}, avg:calcAvg(), comment:document.getElementById('cfield').value, kpi:curKPI, savedAt:new Date().toISOString(), savedBy:cu.adminName||cu.email, history:history };
+  if(existing) history.push({ criteria:existing.criteria, avg:existing.avg, comment:existing.comment, ccomments:existing.ccomments||{}, kpi:existing.kpi||{}, savedAt:existing.savedAt, savedBy:existing.savedBy||'Unknown' });
+  var d={ criteria:{}, avg:calcAvg(), comment:document.getElementById('cfield').value, ccomments:curComments, kpi:curKPI, savedAt:new Date().toISOString(), savedBy:cu.adminName||cu.email, history:history };
   for(var i=0;i<CRITERIA.length;i++) d.criteria[CRITERIA[i]]=curRatings[CRITERIA[i]]||0;
   setRating(cMonth,cWeek,cEmp,d);
-  notifyRating(cEmp, cMonth, cWeek);   // email the employee that their rating was updated
-  syncSalarySheet(cEmp, cMonth, cWeek, d.avg, false);  // mirror avg into salary sheet
+  syncSalarySheet(cEmp, cMonth, cWeek, d.avg, false);  // mirror avg into salary sheet (saving no longer emails anyone)
   showToast('Rating saved by '+d.savedBy+' ✓','success');
   setTimeout(function(){ saveBtn.disabled=false; saveBtn.textContent='Save Rating ✓'; initEmpGrid(); goToWeek(); },1000);
 }
@@ -1598,7 +1655,7 @@ function undoRating() {
   if(!existing||!existing.history||existing.history.length===0) { showToast('No previous version to undo to','error'); return; }
   var prev=existing.history[existing.history.length-1];
   var newHistory=existing.history.slice(0,-1);
-  var d={ criteria:prev.criteria, avg:prev.avg, comment:prev.comment, kpi:prev.kpi||{}, savedAt:prev.savedAt, savedBy:prev.savedBy, history:newHistory, undoneBy:cu.adminName||cu.email, undoneAt:new Date().toISOString() };
+  var d={ criteria:prev.criteria, avg:prev.avg, comment:prev.comment, ccomments:prev.ccomments||{}, kpi:prev.kpi||{}, savedAt:prev.savedAt, savedBy:prev.savedBy, history:newHistory, undoneBy:cu.adminName||cu.email, undoneAt:new Date().toISOString() };
   setRating(cMonth,cWeek,cEmp,d);
   showToast('Rating restored to previous version ↩','info');
   setTimeout(function(){ buildForm(cEmp); },400);
@@ -1611,6 +1668,21 @@ function deleteRating() {
   syncSalarySheet(cEmp, cMonth, cWeek, '', true);   // clear the salary-sheet cell too
   showToast('Rating deleted','info');
   setTimeout(function(){ initEmpGrid(); goToWeek(); },1000);
+}
+
+// ── Send the notification email on demand (separate from saving) ──
+function sendRatingEmail() {
+  if(cu.role!=='manager') return;
+  var saved=getRating(cMonth,cWeek,cEmp);
+  if(!saved) { showToast('Save a rating first, then send the email','error'); return; }
+  var map=getMap(), rec=map[cEmp];
+  var email=(typeof rec==='string')?rec:(rec&&rec.email?rec.email:'');
+  if(!email) { showToast('No email is assigned to '+cEmp,'error'); return; }
+  var btn=document.getElementById('email-btn');
+  if(btn){ btn.disabled=true; btn.textContent='📧 Sending...'; }
+  notifyRating(cEmp, cMonth, cWeek);
+  showToast('Email sent to '+cEmp+' ✓','success');
+  setTimeout(function(){ if(btn){ btn.disabled=false; btn.textContent='📧 Send Email to Employee'; } },1400);
 }
 
 // ── My Ratings (consolidated viewer dashboard) ────────────────
@@ -1628,8 +1700,25 @@ function renderMyRatings() {
         for(var ci=0;ci<CRITERIA.length;ci++) {
           var v=r.criteria[CRITERIA[ci]]; v=(v===undefined||v===null)?0:v;
           rows+='<div class="rrow"><span class="rrl">'+CRITERIA[ci]+'</span><span class="rrscore">'+Number(v).toFixed(1)+'</span></div>';
+          var cc=(r.ccomments && r.ccomments[CRITERIA[ci]])?r.ccomments[CRITERIA[ci]]:'';
+          if(cc) rows+='<div class="ccview" style="margin:2px 0 8px">💬 '+escHtml(cc)+'</div>';
         }
-        mhtml+='<div class="wacc"><div class="wah" onclick="this.nextElementSibling.classList.toggle(\'open\')"><h5>Week '+w+'</h5><div style="display:flex;align-items:center;gap:8px"><span class="avgb">Avg: '+r.avg+'</span><span style="color:var(--muted);font-size:12px">▼</span></div></div><div class="wab">'+rows+(r.comment?'<div style="margin-top:10px;padding:9px;background:var(--bg);border-radius:8px;font-size:12px;color:var(--muted);font-style:italic">"'+r.comment+'"</div>':'')+'</div></div>';
+        var kpiHtml='';
+        if(r.kpi){
+          var krows='',kfilled=0;
+          for(var ki=0;ki<KPI_DEFS.length;ki++){
+            var kd=KPI_DEFS[ki], kv=r.kpi[kd.key];
+            if(kv!==undefined && kv!=='' && kv!==null){
+              kfilled++;
+              var st='';
+              if(kd.targetNum!==null){ var kn=parseFloat(kv); if(!isNaN(kn)){ var met=(kd.key==='aht')?kn<=kd.targetNum:(kd.key==='reopen')?kn===0:kn>=kd.targetNum; st=met?'<span class="kpi-status met">✓ Met</span>':'<span class="kpi-status notmet">✗ Below</span>'; } }
+              krows+='<div class="rrow"><span class="rrl">'+kd.name+' <span style="color:var(--muted);font-size:11px">(Target: '+escHtml(kd.target)+')</span></span><span style="display:flex;align-items:center;gap:8px"><span class="rrscore">'+escHtml(String(kv))+escHtml(kd.unit)+'</span>'+st+'</span></div>';
+            }
+          }
+          if(kfilled>0) kpiHtml='<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)"><div style="font-family:Syne,sans-serif;font-size:12px;font-weight:800;color:var(--accent4);margin-bottom:8px;letter-spacing:0.5px">📊 KPI TARGETS</div>'+krows+'</div>';
+        }
+        var commentHtml=r.comment?'<div style="margin-top:10px;padding:9px;background:var(--bg);border-radius:8px;font-size:12px;color:var(--muted);font-style:italic">"'+escHtml(r.comment)+'"</div>':'';
+        mhtml+='<div class="wacc"><div class="wah" onclick="this.nextElementSibling.classList.toggle(\'open\')"><h5>Week '+w+'</h5><div style="display:flex;align-items:center;gap:8px"><span class="avgb">Avg: '+r.avg+'</span><span style="color:var(--muted);font-size:12px">▼</span></div></div><div class="wab">'+rows+commentHtml+kpiHtml+'</div></div>';
       }
     }
     if(mhas) { html+='<div class="macc"><div class="mah" onclick="this.nextElementSibling.classList.toggle(\'open\')"><h4>'+MONTHS[mi]+' 2026</h4><span>▼</span></div><div class="mab">'+mhtml+'</div></div>'; }
