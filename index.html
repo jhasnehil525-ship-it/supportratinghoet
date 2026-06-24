@@ -1970,14 +1970,32 @@ function importBackup(){ var inp=document.createElement('input'); inp.type='file
 function downloadComparisonXlsx(){ if(!LAST_CMP || typeof XLSX==='undefined') return; XLSX.writeFile(buildWeeksWorkbook(LAST_CMP.weeks, LAST_CMP.statements), wkSlug(currentWorkshop)+'_comparison.xlsx'); }
 
 /* ---- INSIGHTS ---- */
+// find the per-slot attendance table inside a stored report (OUT map)
+function findAttTable(out){
+  if(!out) return null;
+  var known={'master_enriched_leads.csv':1,'leads_with_time_in_session.csv':1,'l1_with_paid_status.csv':1,'age_wise_bifurcation.csv':1,'salary_city_enriched_leads.csv':1,'salary_bifurcation.csv':1,'city_tier_bifurcation.csv':1,'attendance_full_matrix.csv':1};
+  for(var k in out){ if(known[k]) continue; if(k.indexOf('_retention.csv')>=0) continue; if(k.indexOf('full_matrix')>=0) continue; if(String(k).slice(-4)!=='.csv') continue; return out[k]; }
+  return null;
+}
+// render an array-of-arrays as a compact scrollable table (first row = header)
+function aoaTable(aoa){
+  if(!aoa || !aoa.length) return '';
+  var h='<div class="cmp-table-wrap"><table class="cmp-table"><thead><tr>'+aoa[0].map(function(c){ return '<th>'+escH(c)+'</th>'; }).join('')+'</tr></thead><tbody>';
+  for(var r=1;r<aoa.length;r++){ h+='<tr>'+aoa[r].map(function(c,ci){ return (ci===0?'<td class="rowh">':'<td>')+escH(c)+'</td>'; }).join('')+'</tr>'; }
+  return h+'</tbody></table></div>';
+}
 async function generateInsights(){
   var dates=Array.from(selected).sort();
   var target=$('cmpTarget').value;
   if(dates.length<2 || !target){ return; }
   $('cmpOut').innerHTML='<div class="headline">Crunching the comparison… one moment.</div>';
   var sums={};
-  var fetched=await Promise.all(dates.map(function(d){ return DB.get(weekKey(d), true).then(function(w){ return {d:d,w:w}; }, function(){ return {d:d,w:null}; }); }));
-  fetched.forEach(function(o){ if(o.w) sums[o.d]=o.w; });
+  var both=await Promise.all([
+    Promise.all(dates.map(function(d){ return DB.get(weekKey(d), true).then(function(w){ return {d:d,w:w}; }, function(){ return {d:d,w:null}; }); })),
+    (typeof pako!=='undefined') ? DB.reportGet(weekKey(target)).then(function(s){return s;}, function(){return '';}) : Promise.resolve('')
+  ]);
+  both[0].forEach(function(o){ if(o.w) sums[o.d]=o.w; });
+  var focusAtt=null; if(both[1]){ try{ focusAtt=findAttTable(JSON.parse(ungzipB64(both[1]))); }catch(e){} }
   var weeks=dates.map(function(d){ return sums[d]; }).filter(Boolean);
   var T=sums[target]; if(!T){ return; }
   var Cs=weeks.filter(function(w){ return w.date!==target; });
@@ -2100,6 +2118,13 @@ async function generateInsights(){
     var aoTIdx=1+wsorted.map(function(w){return w.date;}).indexOf(target);
     var aoRows=milestones.map(function(mn){ return [mn+' min'].concat(wsorted.map(function(w){ var v=retAt(w,mn); return v==null?'—':Math.round(v*100)+'%'; })); });
     html+='<div class="chart-sub">Share of all leads still in the session at ≥ N minutes</div>'+htmlTable(aoHdr, aoRows, aoTIdx);
+  }
+  // full per-slot attendance table for the focus week (time · count · % + age/tier/salary)
+  html+='<div class="cmp-h">Attendance table — '+escH(prettyDate(target))+' (by time, with age &amp; city)</div>';
+  if(focusAtt && focusAtt.length){
+    html+='<div class="chart-sub">Snapshot attendance at each time slot for the week you\u2019re explaining — count, overall %, and % within each age group, city tier and salary band.</div>'+aoaTable(focusAtt);
+  } else {
+    html+='<div class="chart-sub" style="color:var(--accent3)">This detailed table comes from the focus week\u2019s saved report. '+(T.hasReport?'It could not be loaded just now — try again in a moment.':'Re-save this week (Analyze \u25b8 Save week) so its full attendance-by-time table shows here.')+'</div>';
   }
 
   // ---- OTO deep-dive ----
