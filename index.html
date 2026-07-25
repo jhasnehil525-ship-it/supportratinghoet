@@ -372,9 +372,35 @@ header {
 
 @media(max-width:860px){
   header,.bc,.main{ padding-left:20px; padding-right:20px; }
+  header{ height:auto; min-height:64px; padding-top:8px; padding-bottom:8px; flex-wrap:wrap; row-gap:8px; }
+  .hr{ flex-wrap:wrap; row-gap:8px; }
+  .htabs{ overflow-x:auto; flex-wrap:nowrap; -webkit-overflow-scrolling:touch; }
+  .htab{ white-space:nowrap; flex:0 0 auto; }
   .rlayout { grid-template-columns:1fr; }
   .wgrid { grid-template-columns:repeat(2,1fr); }
   .scalecard { position:static; }
+}
+
+/* Phones — stack the header cleanly, truncate long names, make tabs scroll */
+@media(max-width:600px){
+  header,.bc,.main{ padding-left:14px; padding-right:14px; }
+  header{ min-height:56px; }
+  .hlogo{ width:30px; height:30px; font-size:14px; }
+  .htitle{ font-size:15px; }
+  .hr{ width:100%; gap:8px; justify-content:flex-start; }
+  .uchip{ order:1; padding:4px 10px 4px 5px; }
+  .uname{ display:block; max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rbadge{ order:2; font-size:10px; padding:3px 8px; }
+  .sync-chip{ order:3; }
+  .sync-chip span{ display:none; }
+  #team-chip{ order:4; }
+  .logout-btn{ order:5; padding:6px 12px; font-size:12px; }
+  .htabs{ order:6; width:100%; padding:4px; scrollbar-width:none; }
+  .htabs::-webkit-scrollbar{ display:none; }
+  .main{ padding-top:24px; padding-bottom:24px; }
+  .ptitle{ font-size:23px; }
+  .egrid{ grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); }
+  .login-card{ padding:32px 22px; }
 }
 
 /* ════════════════════ PREMIUM POLISH ════════════════════ */
@@ -476,6 +502,12 @@ header { border-bottom:1px solid rgba(124,111,255,0.18); box-shadow:0 8px 28px -
 .email-btn { width:100%; margin-top:10px; padding:13px; background:linear-gradient(120deg,rgba(74,184,255,0.16),rgba(56,239,125,0.16)); border:1px solid rgba(74,184,255,0.4); border-radius:12px; color:#7fd4ff; font-family:'Syne',sans-serif; font-size:14px; font-weight:700; cursor:pointer; transition:all 0.18s; }
 .email-btn:hover { border-color:rgba(74,184,255,0.7); box-shadow:0 6px 18px -6px rgba(74,184,255,0.5); }
 .email-btn:disabled { opacity:0.6; cursor:default; }
+.voice-fab{ position:fixed; left:20px; bottom:22px; z-index:400; width:56px; height:56px; border-radius:50%; border:none; cursor:pointer; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; font-size:22px; display:none; align-items:center; justify-content:center; box-shadow:0 10px 30px rgba(124,111,255,0.5); transition:transform .15s, box-shadow .2s; }
+.voice-fab:hover{ transform:translateY(-2px); box-shadow:0 14px 36px rgba(124,111,255,0.6); }
+.voice-fab.listening{ background:linear-gradient(135deg,var(--danger),var(--accent2)); animation:voicePulse 1.1s ease-in-out infinite; }
+@keyframes voicePulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(255,77,109,0.55);} 50%{ box-shadow:0 0 0 15px rgba(255,77,109,0);} }
+.voice-status{ position:fixed; left:20px; bottom:88px; z-index:400; display:none; background:var(--surface-solid); border:1px solid var(--border); border-radius:12px; padding:9px 14px; font-size:12px; color:var(--text); max-width:76vw; box-shadow:0 8px 24px rgba(0,0,0,0.55); }
+@media(max-width:600px){ .voice-fab{ left:14px; bottom:16px; width:52px; height:52px; } .voice-status{ left:14px; bottom:76px; } }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
@@ -546,6 +578,7 @@ header { border-bottom:1px solid rgba(124,111,255,0.18); box-shadow:0 8px 28px -
         <button class="htab" type="button" onclick="switchTab('rankings')">🏆 Rankings</button>
         <button class="htab" type="button" onclick="switchTab('toppers')">⭐ Top Performers</button>
       </div>
+      <button id="team-chip" type="button" onclick="showTeamSelect()" style="display:none;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:40px;padding:6px 14px;color:var(--text);font-size:13px;font-weight:600;cursor:pointer;"><span id="team-chip-name">Support Team</span><span style="opacity:0.55;font-size:12px;">⇄ switch</span></button>
       <div class="uchip">
         <div class="uav" id="uav">P</div>
         <div>
@@ -569,6 +602,12 @@ header { border-bottom:1px solid rgba(124,111,255,0.18); box-shadow:0 8px 28px -
     <!-- RATINGS -->
     <div id="ratings-sec">
 
+      <div class="page" id="pg-teams">
+        <div class="ptitle">Choose Team</div>
+        <div class="psub">Select which team you want to rate — each team has its own roster and rankings.</div>
+        <div class="mgrid" id="teamgrid" style="max-width:680px;"></div>
+      </div>
+
       <div class="page active" id="pg-months">
         <div id="vwelcome" style="display:none;align-items:center;gap:16px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:24px;"></div>
         <div class="ptitle" id="months-title">Select Month</div>
@@ -590,6 +629,7 @@ header { border-bottom:1px solid rgba(124,111,255,0.18); box-shadow:0 8px 28px -
       <div class="page" id="pg-emps">
         <div class="ptitle" id="etitle">Week 1 — January 2026</div>
         <div class="psub" id="esub">Select an employee to rate</div>
+        <input type="text" id="emp-search" placeholder="🔍 Search employee by name…" oninput="initEmpGrid()" style="width:100%;max-width:440px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:11px 16px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;margin-bottom:18px;">
         <div class="egrid" id="egrid"></div>
       </div>
 
@@ -740,6 +780,23 @@ header { border-bottom:1px solid rgba(124,111,255,0.18); box-shadow:0 8px 28px -
         <div style="display:flex;flex-wrap:wrap;gap:10px;" id="admin-list"></div>
       </div>
 
+      <!-- KPI criteria editor -->
+      <div class="asec" id="kpi-manage-sec" style="margin-bottom:20px;">
+        <h3 id="kpi-manage-title">Manage KPI Criteria</h3>
+        <p>Edit each criterion's name, target and unit — or add and remove criteria. Changes apply to <strong>this team only</strong> — the other team keeps its own separate KPI list. Existing recorded values stay linked to their criterion. “Good when” controls when a value shows ✓ Met vs ✗ Below.</p>
+        <div style="overflow-x:auto;">
+          <table class="atable" id="kpi-edit-table" style="min-width:820px;">
+            <thead><tr><th style="min-width:150px;">Name</th><th style="min-width:190px;">Description</th><th style="min-width:120px;">Target (text)</th><th style="width:70px;">Unit</th><th style="width:90px;">Target #</th><th style="width:120px;">Good when</th><th style="width:40px;"></th></tr></thead>
+            <tbody id="kpi-edit-tbody"></tbody>
+          </table>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
+          <button class="abtn" type="button" onclick="addKPIRow()" style="background:linear-gradient(135deg,var(--accent3),var(--accent));color:#080810;padding:11px 20px;">＋ Add Criterion</button>
+          <button class="abtn" type="button" onclick="saveKPIDefs()" style="padding:11px 22px;">Save Criteria ✓</button>
+          <button type="button" onclick="resetKPIDefs()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;font-weight:600;padding:10px 14px;cursor:pointer;">↺ Reset to defaults</button>
+        </div>
+      </div>
+
       <!-- Bulk credential upload -->
       <div class="asec" style="margin-bottom:20px;">
         <h3>Bulk Upload Credentials (CSV)</h3>
@@ -777,6 +834,8 @@ header { border-bottom:1px solid rgba(124,111,255,0.18); box-shadow:0 8px 28px -
   </div>
 </div>
 
+<button id="voice-fab" class="voice-fab" type="button" onclick="voiceToggle()" title="Voice command" aria-label="Voice command">🎤</button>
+<div id="voice-status" class="voice-status"></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -999,14 +1058,14 @@ function addAgent_(b) {
 */
 
 // === PASTE YOUR APPS SCRIPT WEB APP URL BELOW ===
-var GAS_URL = 'https://script.google.com/macros/s/AKfycbw7CNVN_gFakJji_fbUOftTMknXVOfbGbAuAPkdXwpFnwOXH1APUIcH2Yg-Gl1whYOi/exec';
+var GAS_URL = 'https://script.google.com/macros/s/AKfycbw5NXdTjORJN7RnNHLbNd8EU27XGErpmRDrFhR-A8mm7sOC5BoGFiU-DmQPpPJJMdqX/exec';
 // ================================================
 
 // === PASTE YOUR GOOGLE OAUTH CLIENT ID BELOW (for "Sign in with Google") ===
 // Get one at console.cloud.google.com -> APIs & Services -> Credentials ->
 // Create OAuth client ID -> Web application. Add your page's URL under
 // "Authorized JavaScript origins". Leave as-is to keep Google sign-in hidden.
-var GOOGLE_CLIENT_ID = '41645202040-l13k09un8c6f51vn29vk5a6ak1fj4ivl.apps.googleusercontent.com';
+var GOOGLE_CLIENT_ID = '297117627370-cv8d7un8jmalmk7m31lqmn3qp6j4ohtl.apps.googleusercontent.com';
 // ===========================================================================
 
 // ── In-Memory Database ──────────────────────────────────────
@@ -1140,8 +1199,28 @@ function lsGet(k)   { return dbGet(k); }
 function lsSet(k,v) { dbSet(k, v); }
 function getMap()   { return lsGet('access_map') || {}; }
 function setMap(m)  { lsSet('access_map', m); }
-function getEmps()  { return lsGet('employee_list') || DEFAULT_EMPS; }
-function saveEmps(list) { lsSet('employee_list', list); }
+function teamKey()  { return 'employee_list_' + (curTeam || 'support'); }
+function teamName() { for (var i=0;i<TEAMS.length;i++) if (TEAMS[i].id===curTeam) return TEAMS[i].name; return 'Support Team'; }
+// One-time split of the existing single roster into the two team rosters.
+function ensureTeamRosters() {
+  if (lsGet('employee_list_support') || lsGet('employee_list_quality')) return;
+  var current = lsGet('employee_list') || DEFAULT_EMPS.slice();
+  var quality = [], support = [];
+  for (var i=0;i<current.length;i++) {
+    var isQ = QUALITY_SEED.some(function(q){ return normTok(q)===normTok(current[i]); });
+    (isQ?quality:support).push(current[i]);
+  }
+  QUALITY_SEED.forEach(function(q){ if(!quality.some(function(x){return normTok(x)===normTok(q);})) quality.push(q); });
+  lsSet('employee_list_support', support);
+  lsSet('employee_list_quality', quality);
+}
+function teamOfEmployee(name) {
+  ensureTeamRosters();
+  var q = lsGet('employee_list_quality') || [];
+  return q.some(function(x){ return normTok(x)===normTok(name); }) ? 'quality' : 'support';
+}
+function getEmps()  { ensureTeamRosters(); return lsGet(teamKey()) || []; }
+function saveEmps(list) { lsSet(teamKey(), list); }
 function getRating(mo,w,e) { return lsGet('r26_'+mo+'_w'+w+'_'+e); }
 function setRating(mo,w,e,d) { lsSet('r26_'+mo+'_w'+w+'_'+e, d); }
 function cntRatings(mo,w) { var c=0; for(var i=0;i<EMPS.length;i++) if(getRating(mo,w,EMPS[i])) c++; return c; }
@@ -1158,6 +1237,16 @@ var DEFAULT_EMPS = [
   'Vicky Shaw','Aman','Sakshi Jha','Harshita','Nayeemuddin','Suman Singha'
 ];
 var EMPS = DEFAULT_EMPS;
+
+// Teams — managers pick one after login; each team has its own roster & rankings.
+// Ratings still write to the SAME Google Sheets (keyed by employee name), so the
+// salary sheet stays shared exactly as before.
+var TEAMS = [
+  { id:'support', name:'Support Team' },
+  { id:'quality', name:'Quality for Support' }
+];
+// Seed used ONLY on first run to split the existing roster into the two teams.
+var QUALITY_SEED = ['Sandeepan','Asif','Sharique','Hamidul','Laboni','Amit','Sushmita','Liza'];
 
 var KPI_DEFS = [
   { key:'quality',       name:'Quality',                      desc:'How good and correct your replies are.',                 target:'90%',          unit:'%',    targetNum:90  },
@@ -1177,6 +1266,38 @@ var KPI_DEFS = [
 var curKPI = {};
 var curComments = {};
 
+// Built-in defaults kept for the "reset" button.
+var BUILTIN_KPI_DEFS = JSON.parse(JSON.stringify(KPI_DEFS));
+// KPI criteria are manager-editable and stored PER TEAM in the DB, so each team
+// keeps its own list — editing one team's KPIs never affects the other.
+function kpiKey() { return 'kpi_defs_' + (curTeam || 'support'); }
+function loadKPIDefs() {
+  var saved = lsGet(kpiKey());
+  if (saved && saved.length) { KPI_DEFS = saved; return; }
+  // First time for this team: seed from an older shared list if one exists,
+  // otherwise from the built-in defaults. Each team then diverges independently.
+  var legacy = lsGet('kpi_defs');
+  var seed = (legacy && legacy.length) ? JSON.parse(JSON.stringify(legacy)) : JSON.parse(JSON.stringify(BUILTIN_KPI_DEFS));
+  KPI_DEFS = seed;
+  lsSet(kpiKey(), seed);
+}
+// Direction for the Met/Below badge. Editable KPIs carry an explicit dir; the
+// built-in ones are inferred so old data keeps its correct status.
+function inferDir(def) {
+  if (def && def.dir) return def.dir;
+  if (!def || def.targetNum == null) return 'none';
+  if (def.key === 'aht' || def.key === 'shrinkage') return 'lte';
+  if (def.key === 'reopen') return 'zero';
+  return 'gte';
+}
+function kpiMet(kpi, num) {
+  var dir = inferDir(kpi);
+  if (dir === 'lte') return num <= kpi.targetNum;
+  if (dir === 'zero') return num === 0;
+  if (dir === 'gte' && kpi.targetNum != null) return num >= kpi.targetNum;
+  return null;
+}
+
 var CRITERIA = [
   'Attendance / Availability',
   'Professionalism / Behavior',
@@ -1195,7 +1316,7 @@ var ADMINS = [
 ];
 var EP = atob('ZW1wbG95ZWUxMjM=');   // default fallback password "employee123"
 
-var cu = null, cMonth = null, cWeek = null, cEmp = null, viewOnly = false;
+var cu = null, cMonth = null, cWeek = null, cEmp = null, viewOnly = false, curTeam = null;
 
 // ── KPI Functions ─────────────────────────────────────────────
 function toggleKPI() {
@@ -1215,13 +1336,13 @@ function buildKPITable(savedKPI, readOnly) {
       if(val !== '') filled++;
       var inputId = 'kpi_'+kpi.key;
       var statusHtml = '';
-      if(val !== '' && kpi.targetNum !== null) {
+      if(val !== '') {
         var num = parseFloat(val);
         if(!isNaN(num)) {
-          var met = (kpi.key==='aht') ? num<=kpi.targetNum : (kpi.key==='reopen') ? num===0 : num>=kpi.targetNum;
-          statusHtml = met ? '<span class="kpi-status met">✓ Met</span>' : '<span class="kpi-status notmet">✗ Below</span>';
-        }
-      } else if(val !== '') { statusHtml = '<span class="kpi-status na">Recorded</span>'; }
+          var m = kpiMet(kpi, num);
+          statusHtml = (m===true) ? '<span class="kpi-status met">✓ Met</span>' : (m===false) ? '<span class="kpi-status notmet">✗ Below</span>' : '<span class="kpi-status na">Recorded</span>';
+        } else { statusHtml = '<span class="kpi-status na">Recorded</span>'; }
+      }
       var tr = document.createElement('tr');
       tr.innerHTML = '<td><div class="kpi-name">'+kpi.name+'</div><div class="kpi-desc">'+kpi.desc+'</div><div class="kpi-target">Target: '+kpi.target+'</div></td>'
         +'<td><div class="kpi-input-wrap">'
@@ -1242,11 +1363,13 @@ function updateKPI(key, val) {
   for(var i=0;i<KPI_DEFS.length;i++) if(KPI_DEFS[i].key===key) { kpi=KPI_DEFS[i]; break; }
   if(!kpi) return;
   var statusEl = document.getElementById('kpi-status-'+key);
-  if(statusEl && val!=='' && kpi.targetNum!==null) {
+  if(statusEl && val!=='') {
     var num = parseFloat(val);
-    var met = (kpi.key==='aht') ? num<=kpi.targetNum : (kpi.key==='reopen') ? num===0 : num>=kpi.targetNum;
-    statusEl.innerHTML = met ? '<span class="kpi-status met">✓ Met</span>' : '<span class="kpi-status notmet">✗ Below</span>';
-  } else if(statusEl) { statusEl.innerHTML = val!=='' ? '<span class="kpi-status na">Recorded</span>' : ''; }
+    if(!isNaN(num)) {
+      var m = kpiMet(kpi, num);
+      statusEl.innerHTML = (m===true) ? '<span class="kpi-status met">✓ Met</span>' : (m===false) ? '<span class="kpi-status notmet">✗ Below</span>' : '<span class="kpi-status na">Recorded</span>';
+    } else { statusEl.innerHTML = '<span class="kpi-status na">Recorded</span>'; }
+  } else if(statusEl) { statusEl.innerHTML = ''; }
   var filled=0;
   for(var i=0;i<KPI_DEFS.length;i++) if(curKPI[KPI_DEFS[i].key]!==undefined && curKPI[KPI_DEFS[i].key]!=='') filled++;
   var countEl=document.getElementById('kpi-filled-count');
@@ -1369,27 +1492,59 @@ function initGoogleSignIn() {
 }
 
 function startApp() {
-  EMPS = getEmps();
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app').style.display='block';
   document.getElementById('access-sec').style.display='none';
   document.getElementById('ratings-sec').style.display='block';
   setupHeader();
+  var vf0=document.getElementById('voice-fab'); if(vf0) vf0.style.display=(cu.role==='manager' && VOICE.supported)?'flex':'none';
+  cMonth=null; cWeek=null; cEmp=null;
   if(cu.role==='manager') {
-    document.getElementById('htabs-manager').style.display='flex';
     document.getElementById('htabs-viewer').style.display='none';
+    showTeamSelect();                 // managers choose a team first
   } else {
+    curTeam = teamOfEmployee(cu.empName);
+    EMPS = getEmps(); loadKPIDefs();
     document.getElementById('htabs-manager').style.display='none';
     document.getElementById('htabs-viewer').style.display='flex';
-  }
-  cMonth=null; cWeek=null; cEmp=null;
-  if(cu.role==='viewer') {
-    // Employees see the consolidated, read-only view of all their ratings.
+    var tc0=document.getElementById('team-chip'); if(tc0) tc0.style.display='none';
     renderMyRatings();
     showPage('pg-myratings');
-  } else {
-    initMonths(); showPage('pg-months'); updateBC();
   }
+}
+
+// ── Manager team picker ───────────────────────────────────────
+function showTeamSelect() {
+  document.getElementById('htabs-manager').style.display='none';
+  var tc=document.getElementById('team-chip'); if(tc) tc.style.display='none';
+  var secs=['ratings-sec','graphs-sec','rankings-sec','toppers-sec','export-sec','access-sec'];
+  for(var i=0;i<secs.length;i++){ var el=document.getElementById(secs[i]); if(el) el.style.display=(secs[i]==='ratings-sec')?'block':'none'; }
+  renderTeamCards();
+  showPage('pg-teams');
+  document.getElementById('bc').innerHTML='<span class="cur">Choose Team</span>';
+}
+function renderTeamCards() {
+  var g=document.getElementById('teamgrid'); if(!g) return; g.innerHTML='';
+  ensureTeamRosters();
+  for(var i=0;i<TEAMS.length;i++){
+    (function(t){
+      var roster=lsGet('employee_list_'+t.id)||[];
+      var d=document.createElement('div'); d.className='mbtn';
+      d.innerHTML='<div class="mn">'+t.name+'</div><div class="my">'+roster.length+' employees</div><div class="mc">Open →</div>';
+      d.onclick=function(){ selectTeam(t.id); };
+      g.appendChild(d);
+    })(TEAMS[i]);
+  }
+}
+function selectTeam(id) {
+  curTeam=id; EMPS=getEmps(); loadKPIDefs();
+  document.getElementById('htabs-manager').style.display='flex';
+  var tc=document.getElementById('team-chip'); if(tc) tc.style.display='flex';
+  var cn=document.getElementById('team-chip-name'); if(cn) cn.textContent=teamName();
+  var tabs=document.querySelectorAll('#htabs-manager .htab');
+  for(var i=0;i<tabs.length;i++) tabs[i].classList.toggle('active', i===0);
+  cMonth=null; cWeek=null; cEmp=null;
+  initMonths(); showPage('pg-months'); updateBC();
 }
 
 function doLogout() {
@@ -1399,6 +1554,8 @@ function doLogout() {
   document.getElementById('lemail').value='';
   document.getElementById('lpass').value='';
   document.getElementById('lerr').style.display='none';
+  var vfx=document.getElementById('voice-fab'); if(vfx) vfx.style.display='none';
+  voiceSetListening(false);
 }
 
 function setupHeader() {
@@ -1425,22 +1582,22 @@ function switchTab(tab) {
   if(tab==='access') {
     document.getElementById('access-sec').style.display='block';
     renderAccessTable();
-    document.getElementById('bc').innerHTML='<span class="cur">Access Management</span>';
+    document.getElementById('bc').innerHTML=bcLabel('Access Management');
   } else if(tab==='graphs') {
     document.getElementById('graphs-sec').style.display='block';
-    document.getElementById('bc').innerHTML='<span class="cur">Graphs</span>';
+    document.getElementById('bc').innerHTML=bcLabel('Graphs');
     initGraphSelects(); renderGraph(); renderTeamChart();
   } else if(tab==='rankings') {
     document.getElementById('rankings-sec').style.display='block';
-    document.getElementById('bc').innerHTML='<span class="cur">Rankings</span>';
+    document.getElementById('bc').innerHTML=bcLabel('Rankings');
     initRankMonth(); renderRankings();
   } else if(tab==='toppers') {
     document.getElementById('toppers-sec').style.display='block';
-    document.getElementById('bc').innerHTML='<span class="cur">Top Performers</span>';
+    document.getElementById('bc').innerHTML=bcLabel('Top Performers');
     renderToppers();
   } else if(tab==='export') {
     document.getElementById('export-sec').style.display='block';
-    document.getElementById('bc').innerHTML='<span class="cur">Export CSV</span>';
+    document.getElementById('bc').innerHTML=bcLabel('Export CSV');
     initExportSelects();
   } else {
     document.getElementById('ratings-sec').style.display='block';
@@ -1451,9 +1608,18 @@ function switchTab(tab) {
 }
 
 // ── Breadcrumb ────────────────────────────────────────────────
+function bcLabel(label) {
+  if(cu && cu.role==='manager' && curTeam)
+    return '<span onclick="showTeamSelect()">'+teamName()+'</span><span class="sep"> › </span><span class="cur">'+label+'</span>';
+  return '<span class="cur">'+label+'</span>';
+}
 function updateBC() {
   var bc=document.getElementById('bc');
-  var h='<span onclick="goHome()">Home</span>';
+  var h='';
+  if(cu && cu.role==='manager' && curTeam)
+    h='<span onclick="showTeamSelect()">'+teamName()+'</span><span class="sep"> › </span><span onclick="goHome()">Home</span>';
+  else
+    h='<span onclick="goHome()">Home</span>';
   if(cMonth!==null) h+='<span class="sep"> › </span><span onclick="goToMonth()">'+MONTHS[cMonth]+'</span>';
   if(cWeek!==null)  h+='<span class="sep"> › </span><span onclick="goToWeek()">Week '+cWeek+'</span>';
   if(cEmp!==null)   h+='<span class="sep"> › </span><span class="cur">'+cEmp+'</span>';
@@ -1461,7 +1627,7 @@ function updateBC() {
 }
 function goHome()    { cMonth=null; cWeek=null; cEmp=null; initMonths(); showPage('pg-months'); updateBC(); }
 function goToMonth() { cWeek=null; cEmp=null; document.getElementById('wtitle').textContent=MONTHS[cMonth]+' 2026'; showPage('pg-weeks'); updateBC(); }
-function goToWeek()  { cEmp=null; initEmpGrid(); document.getElementById('etitle').textContent='Week '+cWeek+' — '+MONTHS[cMonth]+' 2026'; showPage('pg-emps'); updateBC(); }
+function goToWeek()  { cEmp=null; var s=document.getElementById('emp-search'); if(s) s.value=''; initEmpGrid(); document.getElementById('etitle').textContent='Week '+cWeek+' — '+MONTHS[cMonth]+' 2026'; showPage('pg-emps'); updateBC(); }
 
 // ── Month & Week Selectors ────────────────────────────────────
 function initMonths() {
@@ -1485,7 +1651,7 @@ function initMonths() {
   }
 }
 function selMonth(i) { cMonth=i; document.getElementById('wtitle').textContent=MONTHS[i]+' 2026'; updateBC(); showPage('pg-weeks'); }
-function selWeek(w)  { cWeek=w; initEmpGrid(); document.getElementById('etitle').textContent='Week '+w+' — '+MONTHS[cMonth]+' 2026'; updateBC(); showPage('pg-emps'); }
+function selWeek(w)  { cWeek=w; var s=document.getElementById('emp-search'); if(s) s.value=''; initEmpGrid(); document.getElementById('etitle').textContent='Week '+w+' — '+MONTHS[cMonth]+' 2026'; updateBC(); showPage('pg-emps'); }
 
 // ── Employee Grid ─────────────────────────────────────────────
 function initEmpGrid() {
@@ -1493,8 +1659,11 @@ function initEmpGrid() {
   var g=document.getElementById('egrid'); g.innerHTML='';
   var isV=cu.role==='viewer';
   document.getElementById('esub').textContent=isV?'Viewing your rating':'Select an employee to rate';
-  var list=isV?EMPS.filter(function(e){return e===cu.empName;}):EMPS;
-  if(!list.length) { g.innerHTML='<div class="empty">No employees visible for your account.</div>'; return; }
+  var srch=document.getElementById('emp-search'); if(srch) srch.style.display=isV?'none':'block';
+  var list=isV?EMPS.filter(function(e){return e===cu.empName;}):EMPS.slice();
+  var q=(srch&&srch.value||'').trim().toLowerCase();
+  if(q && !isV) list=list.filter(function(e){ return e.toLowerCase().indexOf(q)!==-1; });
+  if(!list.length) { g.innerHTML='<div class="empty">'+(q?('No employee matches “'+escHtml(q)+'”.'):'No employees visible for your account.')+'</div>'; return; }
   for(var i=0;i<list.length;i++) {
     (function(emp){
       var rated=getRating(cMonth,cWeek,emp)!==null;
@@ -1510,8 +1679,10 @@ function initEmpGrid() {
 // ── Rating Form ───────────────────────────────────────────────
 function selEmp(emp) { cEmp=emp; viewOnly=(cu.role==='viewer'); updateBC(); buildForm(emp); showPage('pg-rating'); }
 var curRatings = {};
+var critAppliers = {};
 
 function buildForm(emp) {
+  critAppliers={};
   document.getElementById('fav').textContent=initials(emp);
   document.getElementById('fname').textContent=emp;
   document.getElementById('fctx').textContent='Week '+cWeek+' — '+MONTHS[cMonth]+' 2026';
@@ -1590,6 +1761,16 @@ function buildForm(emp) {
         if(sel<0) sel=Math.floor(curRatings[crit]||0);
         apply(sel, parseInt(this.value,10));
       });
+
+      critAppliers[crit]=function(v){
+        v=Math.max(0,Math.min(5,v));
+        var ip=Math.floor(v+0.0001), t=Math.round((v-ip)*10);
+        if(ip===5) t=0; if(t<0) t=0; if(t>9) t=9;
+        for(var k2=0;k2<intButtons.length;k2++) intButtons[k2].classList.toggle('on', parseInt(intButtons[k2].getAttribute('data-n'),10)===ip);
+        decRow.classList.add('show');
+        if(ip===5){ decSlider.value=0; decSlider.disabled=true; } else { decSlider.disabled=false; decSlider.value=t; }
+        apply(ip,t);
+      };
 
       var ccRow=document.createElement('div'); ccRow.className='ccrow';
       ccRow.innerHTML='<span class="cclabel">💬</span><input type="text" class="ccinput" placeholder="Comment on '+crit+' (optional)">';
@@ -1711,8 +1892,8 @@ function renderMyRatings() {
             var kd=KPI_DEFS[ki], kv=r.kpi[kd.key];
             if(kv!==undefined && kv!=='' && kv!==null){
               kfilled++;
-              var st='';
-              if(kd.targetNum!==null){ var kn=parseFloat(kv); if(!isNaN(kn)){ var met=(kd.key==='aht')?kn<=kd.targetNum:(kd.key==='reopen')?kn===0:kn>=kd.targetNum; st=met?'<span class="kpi-status met">✓ Met</span>':'<span class="kpi-status notmet">✗ Below</span>'; } }
+              var st=''; var kn=parseFloat(kv);
+              if(!isNaN(kn)){ var m=kpiMet(kd,kn); st=(m===true)?'<span class="kpi-status met">✓ Met</span>':(m===false)?'<span class="kpi-status notmet">✗ Below</span>':''; }
               krows+='<div class="rrow"><span class="rrl">'+kd.name+' <span style="color:var(--muted);font-size:11px">(Target: '+escHtml(kd.target)+')</span></span><span style="display:flex;align-items:center;gap:8px"><span class="rrscore">'+escHtml(String(kv))+escHtml(kd.unit)+'</span>'+st+'</span></div>';
             }
           }
@@ -1722,7 +1903,11 @@ function renderMyRatings() {
         mhtml+='<div class="wacc"><div class="wah" onclick="this.nextElementSibling.classList.toggle(\'open\')"><h5>Week '+w+'</h5><div style="display:flex;align-items:center;gap:8px"><span class="avgb">Avg: '+r.avg+'</span><span style="color:var(--muted);font-size:12px">▼</span></div></div><div class="wab">'+rows+commentHtml+kpiHtml+'</div></div>';
       }
     }
-    if(mhas) { html+='<div class="macc"><div class="mah" onclick="this.nextElementSibling.classList.toggle(\'open\')"><h4>'+MONTHS[mi]+' 2026</h4><span>▼</span></div><div class="mab">'+mhtml+'</div></div>'; }
+    if(mhas) {
+      var mAvg=getMonthAvg(emp,mi);
+      var mAvgTxt=(mAvg!==null)?mAvg.toFixed(2):'—';
+      html+='<div class="macc"><div class="mah" onclick="this.nextElementSibling.classList.toggle(\'open\')"><div><h4>'+MONTHS[mi]+' 2026</h4><div style="font-size:12px;color:var(--accent3);font-weight:700;margin-top:3px;">Monthly Avg: '+mAvgTxt+' / 5.00</div></div><span>▼</span></div><div class="mab">'+mhtml+'</div></div>';
+    }
   }
   if(!any) html+='<div class="empty" style="margin-top:32px"><div style="font-size:40px;margin-bottom:12px">📋</div><div>No ratings submitted for you yet.</div><div style="font-size:12px;margin-top:6px">Check back after your manager completes the weekly review.</div></div>';
   el.innerHTML=html;
@@ -1777,11 +1962,17 @@ function renderAccessTable() {
         var left=document.createElement('div'); left.style.cssText='display:flex;align-items:center;gap:10px;';
         left.innerHTML='<div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:Syne,sans-serif;flex-shrink:0;">'+initials(emp)+'</div>'
           +'<div><div style="font-size:13px;font-weight:500;">'+emp+'</div><div style="font-size:11px;color:var(--muted);">#'+String(idx+1).padStart(2,'0')+'</div></div>';
+        var actions=document.createElement('div'); actions.style.cssText='display:flex;gap:6px;flex-shrink:0;';
+        var renBtn=document.createElement('button');
+        renBtn.textContent='✏️ Rename';
+        renBtn.style.cssText='background:rgba(124,111,255,0.16);border:1px solid rgba(124,111,255,0.3);color:var(--accent);border-radius:7px;font-size:12px;font-weight:600;padding:5px 10px;cursor:pointer;white-space:nowrap;';
+        renBtn.onclick=(function(e){ return function(){ renameEmployee(e); }; })(emp);
         var btn=document.createElement('button');
         btn.textContent='🗑 Remove';
-        btn.style.cssText='background:rgba(255,77,109,0.12);border:1px solid rgba(255,77,109,0.25);color:var(--danger);border-radius:7px;font-size:12px;font-weight:600;padding:5px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0;';
+        btn.style.cssText='background:rgba(255,77,109,0.12);border:1px solid rgba(255,77,109,0.25);color:var(--danger);border-radius:7px;font-size:12px;font-weight:600;padding:5px 10px;cursor:pointer;white-space:nowrap;';
         btn.onclick=(function(e){ return function(){ deleteEmployee(e); }; })(emp);
-        d.appendChild(left); d.appendChild(btn); eml.appendChild(d);
+        actions.appendChild(renBtn); actions.appendChild(btn);
+        d.appendChild(left); d.appendChild(actions); eml.appendChild(d);
       })(EMPS[i],i);
     }
   }
@@ -1822,6 +2013,7 @@ function renderAccessTable() {
       tr.appendChild(td0); tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3); tr.appendChild(td4); tb.appendChild(tr);
     })(EMPS[i],i);
   }
+  renderKPIEditor();
 }
 
 function assignEmp(emp,idx) {
@@ -1856,6 +2048,98 @@ function updateEmp(emp,idx) {
   if(!newPass) { showToast('Password cannot be empty','error'); return; }
   map[emp]={ email:newEmail, pass:newPass }; setMap(map);
   showToast('Credentials updated for '+emp+' ✓','success'); renderAccessTable();
+}
+
+// ── Rename an employee (migrates ratings, login, photo, salary-sheet column) ──
+function renameEmployee(oldName) {
+  if(cu.role!=='manager') return;
+  var newName=prompt('Rename “'+oldName+'” to:', oldName);
+  if(newName===null) return;
+  newName=newName.trim();
+  if(!newName) { showToast('Name cannot be empty','error'); return; }
+  if(newName===oldName) return;
+  var list=getEmps();
+  for(var i=0;i<list.length;i++){ if(list[i]!==oldName && list[i].toLowerCase()===newName.toLowerCase()){ showToast('“'+newName+'” already exists in this team','error'); return; } }
+  var idx=list.indexOf(oldName);
+  if(idx===-1) { showToast('Employee not found in this team','error'); return; }
+  list[idx]=newName; saveEmps(list); EMPS=list;
+  // migrate ratings (all months/weeks) from old name -> new name
+  var moved=0;
+  for(var mi=0; mi<MONTHS.length; mi++) for(var w=1; w<=4; w++){
+    var oldKey='r26_'+mi+'_w'+w+'_'+oldName;
+    var r=lsGet(oldKey);
+    if(r!==null && r!==undefined){ setRating(mi,w,newName,r); dbDelete(oldKey); moved++; }
+  }
+  // migrate login mapping + photo
+  var map=getMap(); if(map[oldName]!==undefined){ map[newName]=map[oldName]; delete map[oldName]; setMap(map); }
+  var ph=lsGetLocal('photo_'+oldName); if(ph){ lsSetLocal('photo_'+newName, ph); try{ localStorage.removeItem('photo_'+oldName); }catch(e){} }
+  // rename the column in the salary sheet too
+  syncRenameAgent(oldName, newName);
+  showToast('Renamed to “'+newName+'” ✓'+(moved?(' ('+moved+' rating'+(moved===1?'':'s')+' moved)'):''),'success');
+  renderAccessTable();
+}
+function syncRenameAgent(oldName, newName) {
+  if(!GAS_ENABLED) return;
+  fetch(GAS_URL, { method:'POST', mode:'no-cors', headers:{ 'Content-Type':'text/plain' },
+    body: JSON.stringify({ action:'renameAgent', oldName:oldName, newName:newName }) }).catch(function(){});
+}
+
+// ── KPI criteria editor (add / edit / remove; shared across everyone) ─────────
+function renderKPIEditor() {
+  var ttl=document.getElementById('kpi-manage-title'); if(ttl && curTeam) ttl.textContent='Manage KPI Criteria — '+teamName();
+  var tb=document.getElementById('kpi-edit-tbody'); if(!tb) return; tb.innerHTML='';
+  for(var i=0;i<KPI_DEFS.length;i++) appendKPIEditRow(KPI_DEFS[i]);
+}
+function appendKPIEditRow(def) {
+  var tb=document.getElementById('kpi-edit-tbody'); if(!tb) return;
+  var key=(def&&def.key)?def.key:('k_'+Math.random().toString(36).slice(2,8));
+  var dir=inferDir(def||{});
+  var tr=document.createElement('tr');
+  tr.setAttribute('data-key', key);
+  function cell(cls,val,ph,w){ var td=document.createElement('td'); if(w) td.style.minWidth=w; td.innerHTML='<input type="text" class="'+cls+'" value="'+escHtml(val==null?'':String(val))+'" placeholder="'+ph+'" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-family:DM Sans,sans-serif;font-size:12px;outline:none;">'; return td; }
+  tr.appendChild(cell('kpi-e-name', def?def.name:'', 'Criterion name','150px'));
+  tr.appendChild(cell('kpi-e-desc', def?def.desc:'', 'Short description','180px'));
+  tr.appendChild(cell('kpi-e-target', def?def.target:'', 'e.g. 90%','120px'));
+  tr.appendChild(cell('kpi-e-unit', def?def.unit:'%', '%','70px'));
+  var tdNum=document.createElement('td'); tdNum.innerHTML='<input type="number" step="any" class="kpi-e-num" value="'+((def&&def.targetNum!=null)?def.targetNum:'')+'" placeholder="—" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-size:12px;outline:none;">'; tr.appendChild(tdNum);
+  var tdDir=document.createElement('td');
+  tdDir.innerHTML='<select class="kpi-e-dir" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 8px;color:var(--text);font-size:12px;outline:none;">'
+    +'<option value="gte"'+(dir==='gte'?' selected':'')+'>≥ target</option>'
+    +'<option value="lte"'+(dir==='lte'?' selected':'')+'>≤ target</option>'
+    +'<option value="zero"'+(dir==='zero'?' selected':'')+'>= 0</option>'
+    +'<option value="none"'+(dir==='none'?' selected':'')+'>no status</option></select>';
+  tr.appendChild(tdDir);
+  var tdDel=document.createElement('td'); var del=document.createElement('button'); del.className='rbtn'; del.textContent='🗑'; del.title='Remove criterion'; del.onclick=function(){ if(tr.parentNode) tr.parentNode.removeChild(tr); }; tdDel.appendChild(del); tr.appendChild(tdDel);
+  tb.appendChild(tr);
+}
+function addKPIRow() { appendKPIEditRow(null); }
+function saveKPIDefs() {
+  if(cu.role!=='manager') return;
+  var rows=document.querySelectorAll('#kpi-edit-tbody tr');
+  var arr=[], seen={};
+  for(var i=0;i<rows.length;i++){
+    var tr=rows[i];
+    var name=(tr.querySelector('.kpi-e-name').value||'').trim();
+    if(!name) continue;
+    var key=tr.getAttribute('data-key')||('k_'+Math.random().toString(36).slice(2,8));
+    if(seen[key]) key='k_'+Math.random().toString(36).slice(2,8);
+    seen[key]=1;
+    var numRaw=(tr.querySelector('.kpi-e-num').value||'').trim();
+    var targetNum= numRaw===''?null:parseFloat(numRaw); if(isNaN(targetNum)) targetNum=null;
+    arr.push({ key:key, name:name, desc:(tr.querySelector('.kpi-e-desc').value||'').trim(), target:(tr.querySelector('.kpi-e-target').value||'').trim(), unit:(tr.querySelector('.kpi-e-unit').value||'').trim(), targetNum:targetNum, dir:tr.querySelector('.kpi-e-dir').value });
+  }
+  if(!arr.length){ showToast('Add at least one criterion before saving','error'); return; }
+  KPI_DEFS=arr; lsSet(kpiKey(), arr);
+  showToast('KPI criteria saved ✓ ('+arr.length+')','success');
+  renderKPIEditor();
+}
+function resetKPIDefs() {
+  if(cu.role!=='manager') return;
+  if(!confirm('Reset all KPI criteria back to the built-in defaults? Your custom criteria list will be replaced for everyone.')) return;
+  KPI_DEFS=JSON.parse(JSON.stringify(BUILTIN_KPI_DEFS));
+  lsSet(kpiKey(), KPI_DEFS);
+  renderKPIEditor();
+  showToast('KPI criteria reset to defaults ✓','info');
 }
 
 // ── Bulk Credential CSV Upload ────────────────────────────────
@@ -2272,7 +2556,7 @@ function init3DBackground() {
   camera.lookAt(0, -1, 0);
 
   // grid of points on the XZ plane; Y is animated as a flowing wave
-  var SIZE = 64, SPREAD = 60, half = SPREAD/2;
+  var SIZE = (window.innerWidth < 600) ? 40 : 64, SPREAD = 60, half = SPREAD/2;
   var count = SIZE*SIZE;
   var positions = new Float32Array(count*3);
   var colors    = new Float32Array(count*3);
@@ -2395,12 +2679,171 @@ function syncAddAgent(name) {
   }).catch(function(){});
 }
 
+// ── Voice commands (Web Speech API) ───────────────────────────
+var VOICE = { rec:null, listening:false, supported:false };
+var lastVoiceError = '';
+var VOICE_CRIT_ALIASES = [
+  { label:'Attendance / Availability',     keys:['attendance','availability','available','present','punctual','punctuality'] },
+  { label:'Professionalism / Behavior',    keys:['professionalism','professional','behaviour','behavior','discipline','conduct','attitude'] },
+  { label:'Support Resolution Rate + FCR', keys:['resolution','resolutions','resolve','fcr','first contact','support resolution'] },
+  { label:'Ownership',                     keys:['ownership','owner','accountability','responsibility'] },
+  { label:'Quality & CSAT',                keys:['quality','csat','satisfaction','customer satisfaction'] },
+  { label:'Proactiveness',                 keys:['proactiveness','proactive','proactivity','initiative'] }
+];
+function vnorm(s){ return (s||'').toLowerCase().replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim(); }
+function vSubset(a,b){ if(!a.length) return false; for(var i=0;i<a.length;i++) if(b.indexOf(a[i])===-1) return false; return true; }
+function voiceEditDist(a,b){ var m=a.length,n=b.length; if(!m)return n; if(!n)return m; var prev=[],cur=[],i,j; for(j=0;j<=n;j++)prev[j]=j; for(i=1;i<=m;i++){cur[0]=i; for(j=1;j<=n;j++){var cost=a.charAt(i-1)===b.charAt(j-1)?0:1; cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+cost);} for(j=0;j<=n;j++)prev[j]=cur[j];} return prev[n]; }
+function voiceParseNumber(s){
+  s=' '+(s||'').toLowerCase()+' ';
+  s=s.replace(/\bpoint\b/g,' . ');
+  var words={zero:'0',one:'1',two:'2',three:'3',four:'4',five:'5',six:'6',seven:'7',eight:'8',nine:'9'};
+  for(var w in words) s=s.replace(new RegExp('\\b'+w+'\\b','g'),' '+words[w]+' ');
+  s=s.replace(/(\d)\s*\.\s*(\d)/g,'$1.$2');
+  var m=s.match(/\d+(?:\.\d+)?/);
+  if(!m) return null;
+  var v=parseFloat(m[0]);
+  return isNaN(v)?null:v;
+}
+function voiceParseMonth(t){
+  for(var i=0;i<MONTHS.length;i++){ var full=MONTHS[i].toLowerCase(), ab=full.slice(0,3); if(new RegExp('\\b('+full+'|'+ab+')\\b').test(t)) return i; }
+  return -1;
+}
+function voiceParseWeek(t){
+  if(/\b(4th|fourth|week\s*4|week\s*four)\b/.test(t)) return 4;
+  if(/\b(3rd|third|week\s*3|week\s*three)\b/.test(t)) return 3;
+  if(/\b(2nd|second|week\s*2|week\s*two)\b/.test(t)) return 2;
+  if(/\b(1st|first|week\s*1|week\s*one)\b/.test(t)) return 1;
+  var m=t.match(/week\s*(\d)/); if(m){ var w=parseInt(m[1],10); if(w>=1&&w<=4) return w; }
+  m=t.match(/(\d)\s*(?:st|nd|rd|th)?\s*week/); if(m){ var w2=parseInt(m[1],10); if(w2>=1&&w2<=4) return w2; }
+  return 0;
+}
+function voiceExtractName(t){
+  var s=' '+t+' ';
+  for(var i=0;i<MONTHS.length;i++){ var full=MONTHS[i].toLowerCase(), ab=full.slice(0,3); s=s.replace(new RegExp('\\b('+full+'|'+ab+')\\b','g'),' '); }
+  s=s.replace(/\b(open|opens|go|goto|to|show|display|pull|up|rating|ratings|score|scores|for|the|of|please|in|on|and|week|weeks)\b/g,' ');
+  s=s.replace(/\b(1st|2nd|3rd|4th|first|second|third|fourth|one|two|three|four|\d+)\b/g,' ');
+  return s.replace(/\s+/g,' ').trim();
+}
+function voiceNameScore(cand, emp){
+  var nc=vnorm(cand), ne=vnorm(emp);
+  if(!nc||!ne) return 0;
+  if(nc===ne) return 4;
+  var tc=nc.split(' ').filter(Boolean), te=ne.split(' ').filter(Boolean);
+  if(vSubset(tc,te)||vSubset(te,tc)) return 3;
+  for(var i=0;i<tc.length;i++) if(te.indexOf(tc[i])!==-1 && tc[i].length>=3) return 2;
+  for(i=0;i<tc.length;i++) for(var j=0;j<te.length;j++) if(tc[i].length>=4&&te[j].length>=4&&voiceEditDist(tc[i],te[j])<=1) return 1;
+  return 0;
+}
+function voiceFindEmployee(cand){
+  ensureTeamRosters();
+  var rosters=[{id:'support',list:lsGet('employee_list_support')||[]},{id:'quality',list:lsGet('employee_list_quality')||[]}];
+  var best=null;
+  for(var ri=0;ri<rosters.length;ri++){
+    var R=rosters[ri];
+    for(var i=0;i<R.list.length;i++){
+      var sc=voiceNameScore(cand,R.list[i]);
+      if(sc>0 && (!best || sc>best.score || (sc===best.score && R.id===curTeam && best.team!==curTeam))) best={ name:R.list[i], team:R.id, score:sc };
+    }
+  }
+  return best;
+}
+function voiceMatchCriterion(t){
+  var best=null, bestLen=0;
+  for(var i=0;i<VOICE_CRIT_ALIASES.length;i++){
+    var a=VOICE_CRIT_ALIASES[i];
+    if(CRITERIA.indexOf(a.label)===-1) continue;
+    for(var k=0;k<a.keys.length;k++){ var kw=a.keys[k]; if(t.indexOf(kw)!==-1 && kw.length>bestLen){ best=a.label; bestLen=kw.length; } }
+  }
+  if(best) return best;
+  var toks=vnorm(t).split(' ');
+  for(var c=0;c<CRITERIA.length;c++){ var ct=vnorm(CRITERIA[c]).split(' '); for(var x=0;x<toks.length;x++) if(toks[x].length>=4 && ct.indexOf(toks[x])!==-1) return CRITERIA[c]; }
+  return null;
+}
+function voiceActivateTeam(id){
+  if(curTeam!==id){ curTeam=id; EMPS=getEmps(); loadKPIDefs(); }
+  var mt=document.getElementById('htabs-manager'); if(mt) mt.style.display='flex';
+  var tc=document.getElementById('team-chip'); if(tc) tc.style.display='flex';
+  var cn=document.getElementById('team-chip-name'); if(cn) cn.textContent=teamName();
+}
+function voiceOpenRating(name, mo, wk){
+  if(!cu || cu.role!=='manager'){ lastVoiceError='Only managers can open ratings by voice'; return false; }
+  if(!name){ lastVoiceError='Say the employee name too, e.g. "open Nikita for July week 2"'; return false; }
+  var found=voiceFindEmployee(name);
+  if(!found){ lastVoiceError='Couldn\'t find "'+name+'" in either team'; return false; }
+  voiceActivateTeam(found.team);
+  var secs=['graphs-sec','rankings-sec','toppers-sec','export-sec','access-sec'];
+  for(var i=0;i<secs.length;i++){ var el=document.getElementById(secs[i]); if(el) el.style.display='none'; }
+  document.getElementById('ratings-sec').style.display='block';
+  var tabs=document.querySelectorAll('#htabs-manager .htab'); for(var k=0;k<tabs.length;k++) tabs[k].classList.toggle('active', k===0);
+  cMonth=mo; cWeek=wk;
+  selEmp(found.name);
+  showToast('Opened '+found.name+' — '+MONTHS[mo]+' 2026, Week '+wk+' · '+teamName(),'success');
+  return true;
+}
+function voiceSetCriterion(label, val){
+  if(!cEmp || viewOnly){ lastVoiceError='Open an employee rating first, then set a score'; return false; }
+  if(!critAppliers[label]){ lastVoiceError='"'+label+'" isn\'t on this form'; return false; }
+  var v=Math.max(0,Math.min(5,val));
+  critAppliers[label](v);
+  showToast('Set "'+label+'" to '+v.toFixed(1)+' — say "save" to store','success');
+  return true;
+}
+function voiceExecute(text){
+  var t=(text||'').toLowerCase().trim();
+  if(!t) return false;
+  var mo=voiceParseMonth(t);
+  if(mo!==-1){ var wk=voiceParseWeek(t)||1; return voiceOpenRating(voiceExtractName(t), mo, wk); }
+  if(/\bsave\b/.test(t)){ if(cEmp && !viewOnly){ saveRating(); return true; } lastVoiceError='Open an employee rating first'; return false; }
+  var crit=voiceMatchCriterion(t), num=voiceParseNumber(t);
+  if(crit && num!==null) return voiceSetCriterion(crit,num);
+  if(num!==null && !crit) lastVoiceError='Which criterion? e.g. "put '+num+' in ownership"';
+  return false;
+}
+function voiceHandle(transcripts){
+  lastVoiceError='';
+  for(var i=0;i<transcripts.length;i++){ if(voiceExecute(transcripts[i])) return; }
+  showToast(lastVoiceError || ('Heard: "'+(transcripts[0]||'')+'" — try "open <name> for <month> week 2" or "put 4.5 in ownership"'), lastVoiceError?'error':'info');
+}
+function voiceShowStatus(msg){ var s=document.getElementById('voice-status'); if(!s) return; s.style.display='block'; s.textContent=msg; }
+function voiceHideStatus(){ var s=document.getElementById('voice-status'); if(s) s.style.display='none'; }
+function voiceSetListening(on){ VOICE.listening=on; var f=document.getElementById('voice-fab'); if(f) f.classList.toggle('listening',on); if(on) voiceShowStatus('Listening…'); }
+function voiceInit(){
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){ VOICE.supported=false; return; }
+  VOICE.supported=true;
+  var rec=new SR();
+  rec.lang='en-IN'; rec.interimResults=false; rec.maxAlternatives=4; rec.continuous=false;
+  rec.onresult=function(e){
+    var r=e.results[e.results.length-1], list=[];
+    for(var i=0;i<r.length;i++) list.push(r[i].transcript);
+    voiceShowStatus('“'+(list[0]||'')+'”');
+    setTimeout(voiceHideStatus, 3200);
+    voiceHandle(list);
+  };
+  rec.onerror=function(e){
+    voiceSetListening(false); voiceHideStatus();
+    if(e.error==='not-allowed'||e.error==='service-not-allowed') showToast('Microphone is blocked — allow mic access for this site','error');
+    else if(e.error==='no-speech') showToast('Didn\'t hear anything — tap and speak','info');
+    else if(e.error==='audio-capture') showToast('No microphone found','error');
+  };
+  rec.onend=function(){ voiceSetListening(false); };
+  VOICE.rec=rec;
+}
+function voiceToggle(){
+  if(!VOICE.supported){ showToast('Voice commands need Chrome or Edge (Android or desktop)','error'); return; }
+  if(VOICE.listening){ try{ VOICE.rec.stop(); }catch(e){} return; }
+  try{ VOICE.rec.start(); voiceSetListening(true); }
+  catch(e){ /* start called twice — ignore */ }
+}
+
 // ── Boot ──────────────────────────────────────────────────────
 window.onload = async function() {
   init3DBackground();
+  voiceInit();
   var overlay=document.getElementById('loading-overlay');
   if(overlay) overlay.style.display='flex';
   await loadAllData();
+  loadKPIDefs();
   if(overlay) overlay.style.display='none';
   document.getElementById('login-screen').style.display='flex';
 
